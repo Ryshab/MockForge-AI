@@ -51,12 +51,12 @@ export async function readPdfMetadata(
     fileName: file.name,
     fileSize: file.size,
     pageCount: doc.numPages,
-    title,
-    author,
+    ...(title ? { title } : {}),
+    ...(author ? { author } : {}),
     uploadedAt: new Date().toISOString(),
   };
 
-  await doc.destroy();
+  await doc.cleanup();
   onProgress?.(100);
   return metadata;
 }

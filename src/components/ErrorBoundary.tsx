@@ -11,17 +11,17 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  override state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
+  override componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("ErrorBoundary caught", error, info);
   }
 
-  render() {
+  override render() {
     if (this.state.error) {
       return (
         <div className="surface-card mx-auto my-10 max-w-md p-6 text-center">
