@@ -10,33 +10,115 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfigureRouteImport } from './routes/configure'
+import { Route as MockTestRouteImport } from './routes/mock-test'
+import { Route as ResultsRouteImport } from './routes/results'
+import { Route as ReviewRouteImport } from './routes/review'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as UploadRouteImport } from './routes/upload'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfigureRoute = ConfigureRouteImport.update({
+  id: '/configure',
+  path: '/configure',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MockTestRoute = MockTestRouteImport.update({
+  id: '/mock-test',
+  path: '/mock-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsRoute = ResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UploadRoute = UploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configure': typeof ConfigureRoute
+  '/mock-test': typeof MockTestRoute
+  '/results': typeof ResultsRoute
+  '/review': typeof ReviewRoute
+  '/settings': typeof SettingsRoute
+  '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configure': typeof ConfigureRoute
+  '/mock-test': typeof MockTestRoute
+  '/results': typeof ResultsRoute
+  '/review': typeof ReviewRoute
+  '/settings': typeof SettingsRoute
+  '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configure': typeof ConfigureRoute
+  '/mock-test': typeof MockTestRoute
+  '/results': typeof ResultsRoute
+  '/review': typeof ReviewRoute
+  '/settings': typeof SettingsRoute
+  '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/configure'
+    | '/mock-test'
+    | '/results'
+    | '/review'
+    | '/settings'
+    | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/configure'
+    | '/mock-test'
+    | '/results'
+    | '/review'
+    | '/settings'
+    | '/upload'
+  id:
+    | '__root__'
+    | '/'
+    | '/configure'
+    | '/mock-test'
+    | '/results'
+    | '/review'
+    | '/settings'
+    | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfigureRoute: typeof ConfigureRoute
+  MockTestRoute: typeof MockTestRoute
+  ResultsRoute: typeof ResultsRoute
+  ReviewRoute: typeof ReviewRoute
+  SettingsRoute: typeof SettingsRoute
+  UploadRoute: typeof UploadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +130,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configure': {
+      id: '/configure'
+      path: '/configure'
+      fullPath: '/configure'
+      preLoaderRoute: typeof ConfigureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mock-test': {
+      id: '/mock-test'
+      path: '/mock-test'
+      fullPath: '/mock-test'
+      preLoaderRoute: typeof MockTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results': {
+      id: '/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upload': {
+      id: '/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfigureRoute: ConfigureRoute,
+  MockTestRoute: MockTestRoute,
+  ResultsRoute: ResultsRoute,
+  ReviewRoute: ReviewRoute,
+  SettingsRoute: SettingsRoute,
+  UploadRoute: UploadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
