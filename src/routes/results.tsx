@@ -9,7 +9,8 @@ export const Route = createFileRoute("/results")({
       { title: "Results — MockForge AI" },
       {
         name: "description",
-        content: "Scorecards, accuracy and section-wise analysis arrive once the exam engine ships.",
+        content:
+          "Scorecards, accuracy and section-wise analysis arrive once the exam engine ships.",
       },
       { property: "og:title", content: "Results — MockForge AI" },
       { property: "og:description", content: "Scorecards and section analysis, coming soon." },

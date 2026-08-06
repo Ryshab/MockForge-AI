@@ -1,27 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpenCheck } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
-import { ComingSoon } from "@/components/layout/ComingSoon";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ReviewEditor } from "@/features/review/ReviewEditor";
 
 export const Route = createFileRoute("/review")({
   head: () => ({
     meta: [
-      { title: "Review — MockForge AI" },
+      { title: "Review extracted questions — MockForge AI" },
       {
         name: "description",
-        content: "Question-by-question solution review with explanations arrives in a future release.",
+        content:
+          "Review, edit, merge, split and export AI-extracted MCQ questions before building your mock test.",
       },
-      { property: "og:title", content: "Review — MockForge AI" },
-      { property: "og:description", content: "Solution review with explanations, coming soon." },
+      { property: "og:title", content: "Review extracted questions — MockForge AI" },
+      {
+        property: "og:description",
+        content: "A spreadsheet-style editor for AI-extracted question papers.",
+      },
     ],
   }),
   component: () => (
-    <PageShell title="Review" description="Solution review unlocks after the exam engine ships.">
-      <ComingSoon
-        icon={BookOpenCheck}
-        title="Solution review coming soon"
-        description="Walk through every question with your answer, the correct option and an AI-generated explanation."
-      />
+    <PageShell
+      title="Review extracted questions"
+      description="Edit anything the AI got wrong, then export the exam as JSON."
+    >
+      <ErrorBoundary fallbackTitle="Review failed">
+        <ReviewEditor />
+      </ErrorBoundary>
     </PageShell>
   ),
 });

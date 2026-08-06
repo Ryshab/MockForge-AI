@@ -15,7 +15,8 @@ export const Route = createFileRoute("/settings")({
       { title: "Settings — MockForge AI" },
       {
         name: "description",
-        content: "Set default marking values, appearance and exam preferences for every mock test you build.",
+        content:
+          "Set default marking values, appearance and exam preferences for every mock test you build.",
       },
       { property: "og:title", content: "Settings — MockForge AI" },
       { property: "og:description", content: "Defaults, appearance and exam preferences." },

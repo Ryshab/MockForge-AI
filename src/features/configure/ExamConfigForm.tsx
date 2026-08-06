@@ -26,9 +26,17 @@ const schema = z.object({
 type FormValues = z.input<typeof schema>;
 
 const toggles: { name: keyof ExamConfiguration; label: string; hint: string }[] = [
-  { name: "enableNegativeMarking", label: "Negative marking", hint: "Deduct marks for wrong answers" },
+  {
+    name: "enableNegativeMarking",
+    label: "Negative marking",
+    hint: "Deduct marks for wrong answers",
+  },
   { name: "enableSectionTimers", label: "Section timers", hint: "Each section gets its own clock" },
-  { name: "shuffleQuestions", label: "Shuffle questions", hint: "Randomise order within a section" },
+  {
+    name: "shuffleQuestions",
+    label: "Shuffle questions",
+    hint: "Randomise order within a section",
+  },
   { name: "shuffleOptions", label: "Shuffle options", hint: "Randomise A/B/C/D order" },
   { name: "allowReviewMode", label: "Review mode", hint: "Mark questions for review" },
   { name: "enableFullscreen", label: "Fullscreen mode", hint: "Launch the test in fullscreen" },
@@ -70,7 +78,13 @@ export function ExamConfigForm() {
         </div>
         <div>
           <Label htmlFor="totalMarks">Total marks</Label>
-          <Input id="totalMarks" type="number" step="1" className="mt-1.5" {...register("totalMarks")} />
+          <Input
+            id="totalMarks"
+            type="number"
+            step="1"
+            className="mt-1.5"
+            {...register("totalMarks")}
+          />
           {errors.totalMarks ? (
             <p className="mt-1 text-xs text-destructive">{errors.totalMarks.message}</p>
           ) : null}
