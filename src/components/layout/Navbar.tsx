@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { to: "/", label: "Home", exact: true },
   { to: "/upload", label: "Upload", exact: false },
+  { to: "/review", label: "Review", exact: false },
   { to: "/configure", label: "Configure", exact: false },
   { to: "/settings", label: "Settings", exact: false },
 ] as const;
