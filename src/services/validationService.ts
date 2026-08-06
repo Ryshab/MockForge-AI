@@ -28,7 +28,12 @@ function normalize(exam: ExtractedExam): ExtractedExam {
     const correctAnswer = options.includes(q.correctAnswer.trim())
       ? q.correctAnswer.trim()
       : (options[0] ?? "");
-    const confidenceScore = Math.max(0, Math.min(100, Math.round(q.confidenceScore)));
+    // Some models answer on a 0-1 scale; normalize everything to 0-100.
+    const rawScore = Number.isFinite(q.confidenceScore) ? q.confidenceScore : 0;
+    const confidenceScore = Math.max(
+      0,
+      Math.min(100, Math.round(rawScore > 0 && rawScore <= 1 ? rawScore * 100 : rawScore)),
+    );
     return {
       ...q,
       id,
