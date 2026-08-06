@@ -1,8 +1,6 @@
 import { extractedExamSchema, type ExtractedExam } from "@/lib/extraction-schema";
 
-export type ValidationResult =
-  | { ok: true; exam: ExtractedExam }
-  | { ok: false; error: string };
+export type ValidationResult = { ok: true; exam: ExtractedExam } | { ok: false; error: string };
 
 export interface IValidationService {
   parse(raw: string): ValidationResult;
@@ -10,7 +8,11 @@ export interface IValidationService {
 }
 
 function stripFences(raw: string) {
-  const trimmed = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const trimmed = raw
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "")
+    .trim();
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");
   return start >= 0 && end > start ? trimmed.slice(start, end + 1) : trimmed;
@@ -38,7 +40,10 @@ function normalize(exam: ExtractedExam): ExtractedExam {
   });
 
   const sections = Array.from(
-    new Set([...exam.sections.map((s) => s.trim()).filter(Boolean), ...questions.map((q) => q.section)]),
+    new Set([
+      ...exam.sections.map((s) => s.trim()).filter(Boolean),
+      ...questions.map((q) => q.section),
+    ]),
   );
 
   return { ...exam, sections, questions };

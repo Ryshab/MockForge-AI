@@ -26,7 +26,11 @@ const HEADING_PATTERNS: RegExp[] = [
 ];
 
 function cleanTitle(line: string) {
-  return line.replace(/\s+/g, " ").replace(/^[^A-Za-z0-9]+/, "").trim().slice(0, 90);
+  return line
+    .replace(/\s+/g, " ")
+    .replace(/^[^A-Za-z0-9]+/, "")
+    .trim()
+    .slice(0, 90);
 }
 
 function findHeading(text: string): string | null {
@@ -66,9 +70,7 @@ export const paperDetectionService: IPaperDetectionService = {
 
     return starts.map((start, index) => {
       const endPage = (starts[index + 1]?.page ?? doc.metadata.pageCount + 1) - 1;
-      const pages = doc.pages.filter(
-        (p) => p.pageNumber >= start.page && p.pageNumber <= endPage,
-      );
+      const pages = doc.pages.filter((p) => p.pageNumber >= start.page && p.pageNumber <= endPage);
       return {
         id: `paper-${index + 1}-${start.page}`,
         title: start.title || `Paper ${index + 1}`,

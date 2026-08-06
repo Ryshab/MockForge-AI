@@ -73,8 +73,7 @@ export const useExtractionStore = create<ExtractionState>()(
       exam: null,
 
       setStage: (stage, note) => set({ stage, note: note ?? stageLabel[stage] }),
-      setProgress: (progress, note) =>
-        set(note ? { progress, note } : { progress }),
+      setProgress: (progress, note) => set(note ? { progress, note } : { progress }),
       setError: (error) => set({ error, stage: error ? "error" : get().stage }),
       setDocument: (document) => set({ document }),
       setPapers: (papers) => set({ papers }),
@@ -92,9 +91,10 @@ export const useExtractionStore = create<ExtractionState>()(
         set({
           exam: {
             ...exam,
-            sections: patch.section && !exam.sections.includes(patch.section)
-              ? [...exam.sections, patch.section]
-              : exam.sections,
+            sections:
+              patch.section && !exam.sections.includes(patch.section)
+                ? [...exam.sections, patch.section]
+                : exam.sections,
             questions: exam.questions.map((q) => (q.id === id ? { ...q, ...patch } : q)),
           },
         });
@@ -162,7 +162,10 @@ export const useExtractionStore = create<ExtractionState>()(
         const merged: ExtractedQuestion = {
           ...first,
           question: picked.map((q) => q.question).join("\n\n"),
-          explanation: picked.map((q) => q.explanation).filter(Boolean).join("\n\n"),
+          explanation: picked
+            .map((q) => q.explanation)
+            .filter(Boolean)
+            .join("\n\n"),
           confidenceScore: Math.min(...picked.map((q) => q.confidenceScore)),
         };
         const questions = exam.questions
@@ -177,7 +180,10 @@ export const useExtractionStore = create<ExtractionState>()(
         const index = exam.questions.findIndex((q) => q.id === id);
         if (index < 0) return;
         const source = exam.questions[index]!;
-        const parts = source.question.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+        const parts = source.question
+          .split(/\n\s*\n/)
+          .map((p) => p.trim())
+          .filter(Boolean);
         if (parts.length < 2) return;
         const split = parts.map((part, i) => ({
           ...source,

@@ -22,7 +22,10 @@ export function Navbar() {
         aria-label="Main navigation"
         className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:flex sm:justify-between"
       >
-        <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
+        <Link
+          to="/"
+          className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
+        >
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-hero text-primary-foreground">
             <GraduationCap className="size-5" />
           </span>

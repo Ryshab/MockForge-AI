@@ -18,8 +18,13 @@ export function UploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const { metadata, setStatus, setProgress: setPdfProgress, setMetadata, reset: resetPdf } =
-    usePdfStore();
+  const {
+    metadata,
+    setStatus,
+    setProgress: setPdfProgress,
+    setMetadata,
+    reset: resetPdf,
+  } = usePdfStore();
   const {
     stage,
     note,
@@ -145,113 +150,121 @@ export function UploadDropzone() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
       <div className="space-y-6">
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label="Upload a PDF question paper"
-        aria-busy={busy}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload a PDF question paper"
+          aria-busy={busy}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          onDragOver={(e) => {
             e.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          const file = e.dataTransfer.files?.[0];
-          if (file) void handleFile(file);
-        }}
-        className={cn(
-          "surface-card flex cursor-pointer flex-col items-center justify-center gap-4 border-dashed px-6 py-16 text-center transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          dragging ? "border-primary bg-secondary/60 scale-[1.01]" : "hover:border-primary/60",
-        )}
-      >
-        <span className="grid size-16 place-items-center rounded-2xl bg-hero text-primary-foreground">
-          {busy ? <Loader2 className="size-7 animate-spin" /> : <UploadCloud className="size-7" />}
-        </span>
-        <div>
-          <p className="font-display text-lg font-semibold">
-            {busy ? note : "Drop your MCQ PDF here"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            or click to browse — PDF only, up to 100 MB
-          </p>
-        </div>
-        {busy || extracting ? (
-          <div className="w-full max-w-sm">
-            <Progress value={progress} aria-label="PDF reading progress" />
-            <p className="mt-2 text-xs text-muted-foreground">
-              {note} {progress}%
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) void handleFile(file);
+          }}
+          className={cn(
+            "surface-card flex cursor-pointer flex-col items-center justify-center gap-4 border-dashed px-6 py-16 text-center transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            dragging ? "border-primary bg-secondary/60 scale-[1.01]" : "hover:border-primary/60",
+          )}
+        >
+          <span className="grid size-16 place-items-center rounded-2xl bg-hero text-primary-foreground">
+            {busy ? (
+              <Loader2 className="size-7 animate-spin" />
+            ) : (
+              <UploadCloud className="size-7" />
+            )}
+          </span>
+          <div>
+            <p className="font-display text-lg font-semibold">
+              {busy ? note : "Drop your MCQ PDF here"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              or click to browse — PDF only, up to 100 MB
             </p>
           </div>
-        ) : null}
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          className="sr-only"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void handleFile(file);
-            e.target.value = "";
-          }}
-        />
-      </div>
+          {busy || extracting ? (
+            <div className="w-full max-w-sm">
+              <Progress value={progress} aria-label="PDF reading progress" />
+              <p className="mt-2 text-xs text-muted-foreground">
+                {note} {progress}%
+              </p>
+            </div>
+          ) : null}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleFile(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
 
-      {papers.length > 0 ? (
-        <section className="surface-card p-6">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Detected papers
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Only the selected paper is sent to AI — never the whole book.
-          </p>
-          <ul className="mt-4 space-y-2">
-            {papers.map((paper) => (
-              <li key={paper.id}>
-                <label
-                  className={cn(
-                    "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
-                    selectedPaperId === paper.id
-                      ? "border-primary bg-secondary/60"
-                      : "border-border hover:bg-secondary/40",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="paper"
-                    className="mt-1"
-                    checked={selectedPaperId === paper.id}
-                    onChange={() => selectPaper(paper.id)}
-                  />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{paper.title}</span>
-                    <span className="block text-xs text-muted-foreground">
-                      Pages {paper.startPage}–{paper.endPage} · {paper.pageCount} pages ·{" "}
-                      {paper.charCount.toLocaleString()} characters
+        {papers.length > 0 ? (
+          <section className="surface-card p-6">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Detected papers
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Only the selected paper is sent to AI — never the whole book.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {papers.map((paper) => (
+                <li key={paper.id}>
+                  <label
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
+                      selectedPaperId === paper.id
+                        ? "border-primary bg-secondary/60"
+                        : "border-border hover:bg-secondary/40",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="paper"
+                      className="mt-1"
+                      checked={selectedPaperId === paper.id}
+                      onChange={() => selectPaper(paper.id)}
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{paper.title}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        Pages {paper.startPage}–{paper.endPage} · {paper.pageCount} pages ·{" "}
+                        {paper.charCount.toLocaleString()} characters
+                      </span>
                     </span>
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-          <Button
-            className="mt-4"
-            disabled={!selectedPaperId || extracting}
-            onClick={() => void runExtraction()}
-          >
-            {extracting ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-            {extracting ? note : "Extract questions with AI"}
-          </Button>
-        </section>
-      ) : null}
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <Button
+              className="mt-4"
+              disabled={!selectedPaperId || extracting}
+              onClick={() => void runExtraction()}
+            >
+              {extracting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+              {extracting ? note : "Extract questions with AI"}
+            </Button>
+          </section>
+        ) : null}
       </div>
 
       <aside className="surface-card p-6">
@@ -260,7 +273,10 @@ export function UploadDropzone() {
         </h2>
 
         {error ? (
-          <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+          <p
+            role="alert"
+            className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
+          >
             {error}
           </p>
         ) : null}
@@ -307,8 +323,8 @@ export function UploadDropzone() {
           </div>
         ) : (
           <p className="mt-4 text-sm text-muted-foreground">
-            Upload a paper to see its page count, metadata and the individual papers we detect inside
-            it.
+            Upload a paper to see its page count, metadata and the individual papers we detect
+            inside it.
           </p>
         )}
 

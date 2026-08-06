@@ -46,8 +46,7 @@ export const useExamStore = create<ExamState>()(
     (set, get) => ({
       configuration: defaultConfiguration,
       sections: defaultSections,
-      setConfiguration: (config) =>
-        set({ configuration: { ...get().configuration, ...config } }),
+      setConfiguration: (config) => set({ configuration: { ...get().configuration, ...config } }),
       addSection: (name) =>
         set({
           sections: reindex([
@@ -65,8 +64,7 @@ export const useExamStore = create<ExamState>()(
         set({
           sections: get().sections.map((s) => (s.id === id ? { ...s, ...patch } : s)),
         }),
-      removeSection: (id) =>
-        set({ sections: reindex(get().sections.filter((s) => s.id !== id)) }),
+      removeSection: (id) => set({ sections: reindex(get().sections.filter((s) => s.id !== id)) }),
       moveSection: (id, direction) => {
         const sections = [...get().sections];
         const index = sections.findIndex((s) => s.id === id);

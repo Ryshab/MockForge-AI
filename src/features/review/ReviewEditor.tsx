@@ -174,7 +174,10 @@ export function ReviewEditor() {
         >
           Low confidence ({lowCount})
         </Button>
-        <Button variant="outline" onClick={() => addQuestion(sectionFilter === "all" ? undefined : sectionFilter)}>
+        <Button
+          variant="outline"
+          onClick={() => addQuestion(sectionFilter === "all" ? undefined : sectionFilter)}
+        >
           <Plus className="size-4" /> Add
         </Button>
         <Button
@@ -353,7 +356,11 @@ export function ReviewEditor() {
                       <Button variant="outline" size="sm" onClick={() => moveQuestion(q.id, "up")}>
                         <ChevronUp className="size-4" /> Move up
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => moveQuestion(q.id, "down")}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => moveQuestion(q.id, "down")}
+                      >
                         <ChevronDown className="size-4" /> Move down
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => duplicateQuestion(q.id)}>

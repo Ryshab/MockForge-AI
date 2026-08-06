@@ -50,12 +50,7 @@ export interface Exam {
   createdAt: string;
 }
 
-export type AnswerStatus =
-  | "unanswered"
-  | "answered"
-  | "marked"
-  | "answered-marked"
-  | "visited";
+export type AnswerStatus = "unanswered" | "answered" | "marked" | "answered-marked" | "visited";
 
 export interface Answer {
   questionId: string;

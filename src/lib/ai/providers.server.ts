@@ -55,7 +55,8 @@ function createGeminiProvider(apiKey: string, model = "google/gemini-3.6-flash")
 
       if (!response.ok || !response.body) {
         const body = await response.text().catch(() => "");
-        if (response.status === 429) throw new Error("AI rate limit reached. Please retry shortly.");
+        if (response.status === 429)
+          throw new Error("AI rate limit reached. Please retry shortly.");
         if (response.status === 402)
           throw new Error("AI credits exhausted. Add credits to continue extracting.");
         throw new Error(`AI request failed [${response.status}]: ${body.slice(0, 400)}`);
