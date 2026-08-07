@@ -12,6 +12,7 @@ export interface DetectedPaper {
 export interface IPaperDetectionService {
   detect(doc: PdfDocumentContent): DetectedPaper[];
   getPaperText(doc: PdfDocumentContent, paper: DetectedPaper): string;
+  getRangeText(doc: PdfDocumentContent, startPage: number, endPage: number): string;
 }
 
 /** Patterns that usually mark the first page of an individual paper inside a book. */
@@ -85,6 +86,13 @@ export const paperDetectionService: IPaperDetectionService = {
   getPaperText(doc, paper) {
     return doc.pages
       .filter((p) => p.pageNumber >= paper.startPage && p.pageNumber <= paper.endPage)
+      .map((p) => `--- Page ${p.pageNumber} ---\n${p.text}`)
+      .join("\n\n");
+  },
+
+  getRangeText(doc, startPage, endPage) {
+    return doc.pages
+      .filter((p) => p.pageNumber >= startPage && p.pageNumber <= endPage)
       .map((p) => `--- Page ${p.pageNumber} ---\n${p.text}`)
       .join("\n\n");
   },

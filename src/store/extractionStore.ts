@@ -9,6 +9,7 @@ export type PipelineStage =
   | "reading"
   | "extracting-text"
   | "detecting"
+  | "awaiting-mode"
   | "awaiting-selection"
   | "ai"
   | "validating"
@@ -20,6 +21,7 @@ export const stageLabel: Record<PipelineStage, string> = {
   reading: "Reading PDF...",
   "extracting-text": "Extracting text...",
   detecting: "Detecting papers...",
+  "awaiting-mode": "Choose how to process this PDF",
   "awaiting-selection": "Select a paper",
   ai: "Sending to AI...",
   validating: "Validating...",
