@@ -12,12 +12,15 @@ import { aiExtractionService } from "@/services/aiExtractionService";
 import { exportService } from "@/services/exportService";
 import { formatBytes, validatePdfFile } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
+import { ProcessingModeDialog, type ProcessingSelection } from "./ProcessingModeDialog";
 
 export function UploadDropzone() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [modeOpen, setModeOpen] = useState(false);
+  const [selection, setSelection] = useState<ProcessingSelection | null>(null);
   const {
     metadata,
     setStatus,
@@ -31,14 +34,10 @@ export function UploadDropzone() {
     progress,
     error,
     document: doc,
-    papers,
-    selectedPaperId,
     setStage,
     setProgress,
     setError,
     setDocument,
-    setPapers,
-    selectPaper,
     setExam,
     reset: resetExtraction,
   } = useExtractionStore();
@@ -54,6 +53,7 @@ export function UploadDropzone() {
 
       resetPdf();
       resetExtraction();
+      setSelection(null);
       setStatus("reading");
       setStage("reading");
       setProgress(4);
@@ -66,16 +66,10 @@ export function UploadDropzone() {
         setDocument(content);
         setMetadata(content.metadata);
 
-        setStage("detecting");
-        setProgress(80);
-        const detected = paperDetectionService.detect(content);
-        setPapers(detected);
-        selectPaper(detected[0]?.id ?? null);
         setProgress(100);
-        setStage("awaiting-selection");
-        toast.success(
-          `Found ${detected.length} paper${detected.length === 1 ? "" : "s"} across ${content.metadata.pageCount} pages`,
-        );
+        setStage("awaiting-mode");
+        setModeOpen(true);
+        toast.success(`Read ${content.metadata.pageCount} pages — choose a processing mode`);
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "We couldn't read that PDF. Please try another file.";
@@ -86,11 +80,9 @@ export function UploadDropzone() {
     [
       resetPdf,
       resetExtraction,
-      selectPaper,
       setDocument,
       setError,
       setMetadata,
-      setPapers,
       setPdfProgress,
       setProgress,
       setStage,
@@ -101,34 +93,36 @@ export function UploadDropzone() {
   const busy = stage === "reading" || stage === "extracting-text" || stage === "detecting";
   const extracting = stage === "ai" || stage === "validating";
 
-  const runExtraction = useCallback(async () => {
-    const paper = papers.find((p) => p.id === selectedPaperId);
-    if (!doc || !paper) return;
-    setError(null);
-    setStage("ai");
-    setProgress(20);
-    try {
-      const text = paperDetectionService.getPaperText(doc, paper);
-      if (!text.trim()) {
-        throw new Error(
-          "This paper has no readable text — it may be a scanned PDF. OCR support is coming later.",
-        );
+  const runExtraction = useCallback(
+    async (target: ProcessingSelection) => {
+      if (!doc) return;
+      setError(null);
+      setStage("ai");
+      setProgress(20);
+      try {
+        const text = paperDetectionService.getRangeText(doc, target.startPage, target.endPage);
+        if (!text.trim()) {
+          throw new Error(
+            "This paper has no readable text — it may be a scanned PDF. OCR support is coming later.",
+          );
+        }
+        const exam = await aiExtractionService.extract(target.title, text, (s) => {
+          setStage(s === "Validating..." ? "validating" : "ai", s);
+          setProgress(s === "Validating..." ? 85 : 45);
+        });
+        setExam(exam);
+        setProgress(100);
+        setStage("ready");
+        toast.success(`Extracted ${exam.questions.length} questions`);
+        void navigate({ to: "/review" });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Extraction failed.";
+        setError(message);
+        toast.error("Extraction failed", { description: message });
       }
-      const exam = await aiExtractionService.extract(paper.title, text, (s) => {
-        setStage(s === "Validating..." ? "validating" : "ai", s);
-        setProgress(s === "Validating..." ? 85 : 45);
-      });
-      setExam(exam);
-      setProgress(100);
-      setStage("ready");
-      toast.success(`Extracted ${exam.questions.length} questions`);
-      void navigate({ to: "/review" });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Extraction failed.";
-      setError(message);
-      toast.error("Extraction failed", { description: message });
-    }
-  }, [doc, navigate, papers, selectedPaperId, setError, setExam, setProgress, setStage]);
+    },
+    [doc, navigate, setError, setExam, setProgress, setStage],
+  );
 
   const handleImport = useCallback(
     async (file: File) => {
@@ -214,57 +208,58 @@ export function UploadDropzone() {
           />
         </div>
 
-        {papers.length > 0 ? (
+        {doc ? (
           <section className="surface-card p-6">
             <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Detected papers
+              Processing mode
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Only the selected paper is sent to AI — never the whole book.
+              You choose what gets sent to AI — nothing is split automatically.
             </p>
-            <ul className="mt-4 space-y-2">
-              {papers.map((paper) => (
-                <li key={paper.id}>
-                  <label
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
-                      selectedPaperId === paper.id
-                        ? "border-primary bg-secondary/60"
-                        : "border-border hover:bg-secondary/40",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="paper"
-                      className="mt-1"
-                      checked={selectedPaperId === paper.id}
-                      onChange={() => selectPaper(paper.id)}
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{paper.title}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        Pages {paper.startPage}–{paper.endPage} · {paper.pageCount} pages ·{" "}
-                        {paper.charCount.toLocaleString()} characters
-                      </span>
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-            <Button
-              className="mt-4"
-              disabled={!selectedPaperId || extracting}
-              onClick={() => void runExtraction()}
-            >
-              {extracting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Sparkles className="size-4" />
-              )}
-              {extracting ? note : "Extract questions with AI"}
-            </Button>
+            <div className="mt-4 rounded-xl border border-border p-3">
+              <p className="text-sm font-medium">
+                {selection
+                  ? selection.kind === "entire"
+                    ? "Entire PDF"
+                    : selection.kind === "paper"
+                      ? `Detected paper — ${selection.title}`
+                      : "Custom page range"
+                  : "Not chosen yet"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {selection
+                  ? `Pages ${selection.startPage}–${selection.endPage} of ${doc.metadata.pageCount}`
+                  : `${doc.metadata.pageCount} pages read and ready`}
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="outline" disabled={extracting} onClick={() => setModeOpen(true)}>
+                {selection ? "Change mode" : "Choose processing mode"}
+              </Button>
+              {selection ? (
+                <Button disabled={extracting} onClick={() => void runExtraction(selection)}>
+                  {extracting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )}
+                  {extracting ? note : "Extract questions with AI"}
+                </Button>
+              ) : null}
+            </div>
           </section>
         ) : null}
+
+        <ProcessingModeDialog
+          open={modeOpen}
+          onOpenChange={setModeOpen}
+          doc={doc}
+          onConfirm={(next) => {
+            setSelection(next);
+            setModeOpen(false);
+            void runExtraction(next);
+          }}
+        />
       </div>
 
       <aside className="surface-card p-6">
