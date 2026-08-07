@@ -12,10 +12,7 @@ import { aiExtractionService } from "@/services/aiExtractionService";
 import { exportService } from "@/services/exportService";
 import { formatBytes, validatePdfFile } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
-import {
-  ProcessingModeDialog,
-  type ProcessingSelection,
-} from "./ProcessingModeDialog";
+import { ProcessingModeDialog, type ProcessingSelection } from "./ProcessingModeDialog";
 
 export function UploadDropzone() {
   const navigate = useNavigate();
@@ -104,24 +101,24 @@ export function UploadDropzone() {
       setProgress(20);
       try {
         const text = paperDetectionService.getRangeText(doc, target.startPage, target.endPage);
-      if (!text.trim()) {
-        throw new Error(
-          "This paper has no readable text — it may be a scanned PDF. OCR support is coming later.",
-        );
-      }
+        if (!text.trim()) {
+          throw new Error(
+            "This paper has no readable text — it may be a scanned PDF. OCR support is coming later.",
+          );
+        }
         const exam = await aiExtractionService.extract(target.title, text, (s) => {
-        setStage(s === "Validating..." ? "validating" : "ai", s);
-        setProgress(s === "Validating..." ? 85 : 45);
-      });
-      setExam(exam);
-      setProgress(100);
-      setStage("ready");
-      toast.success(`Extracted ${exam.questions.length} questions`);
-      void navigate({ to: "/review" });
+          setStage(s === "Validating..." ? "validating" : "ai", s);
+          setProgress(s === "Validating..." ? 85 : 45);
+        });
+        setExam(exam);
+        setProgress(100);
+        setStage("ready");
+        toast.success(`Extracted ${exam.questions.length} questions`);
+        void navigate({ to: "/review" });
       } catch (e) {
-      const message = e instanceof Error ? e.message : "Extraction failed.";
-      setError(message);
-      toast.error("Extraction failed", { description: message });
+        const message = e instanceof Error ? e.message : "Extraction failed.";
+        setError(message);
+        toast.error("Extraction failed", { description: message });
       }
     },
     [doc, navigate, setError, setExam, setProgress, setStage],
