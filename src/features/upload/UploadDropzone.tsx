@@ -12,12 +12,18 @@ import { aiExtractionService } from "@/services/aiExtractionService";
 import { exportService } from "@/services/exportService";
 import { formatBytes, validatePdfFile } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
+import {
+  ProcessingModeDialog,
+  type ProcessingSelection,
+} from "./ProcessingModeDialog";
 
 export function UploadDropzone() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [modeOpen, setModeOpen] = useState(false);
+  const [selection, setSelection] = useState<ProcessingSelection | null>(null);
   const {
     metadata,
     setStatus,
@@ -31,14 +37,10 @@ export function UploadDropzone() {
     progress,
     error,
     document: doc,
-    papers,
-    selectedPaperId,
     setStage,
     setProgress,
     setError,
     setDocument,
-    setPapers,
-    selectPaper,
     setExam,
     reset: resetExtraction,
   } = useExtractionStore();
@@ -54,6 +56,7 @@ export function UploadDropzone() {
 
       resetPdf();
       resetExtraction();
+      setSelection(null);
       setStatus("reading");
       setStage("reading");
       setProgress(4);
@@ -66,16 +69,10 @@ export function UploadDropzone() {
         setDocument(content);
         setMetadata(content.metadata);
 
-        setStage("detecting");
-        setProgress(80);
-        const detected = paperDetectionService.detect(content);
-        setPapers(detected);
-        selectPaper(detected[0]?.id ?? null);
         setProgress(100);
-        setStage("awaiting-selection");
-        toast.success(
-          `Found ${detected.length} paper${detected.length === 1 ? "" : "s"} across ${content.metadata.pageCount} pages`,
-        );
+        setStage("awaiting-mode");
+        setModeOpen(true);
+        toast.success(`Read ${content.metadata.pageCount} pages — choose a processing mode`);
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "We couldn't read that PDF. Please try another file.";
@@ -86,11 +83,9 @@ export function UploadDropzone() {
     [
       resetPdf,
       resetExtraction,
-      selectPaper,
       setDocument,
       setError,
       setMetadata,
-      setPapers,
       setPdfProgress,
       setProgress,
       setStage,
@@ -101,20 +96,20 @@ export function UploadDropzone() {
   const busy = stage === "reading" || stage === "extracting-text" || stage === "detecting";
   const extracting = stage === "ai" || stage === "validating";
 
-  const runExtraction = useCallback(async () => {
-    const paper = papers.find((p) => p.id === selectedPaperId);
-    if (!doc || !paper) return;
-    setError(null);
-    setStage("ai");
-    setProgress(20);
-    try {
-      const text = paperDetectionService.getPaperText(doc, paper);
+  const runExtraction = useCallback(
+    async (target: ProcessingSelection) => {
+      if (!doc) return;
+      setError(null);
+      setStage("ai");
+      setProgress(20);
+      try {
+        const text = paperDetectionService.getRangeText(doc, target.startPage, target.endPage);
       if (!text.trim()) {
         throw new Error(
           "This paper has no readable text — it may be a scanned PDF. OCR support is coming later.",
         );
       }
-      const exam = await aiExtractionService.extract(paper.title, text, (s) => {
+        const exam = await aiExtractionService.extract(target.title, text, (s) => {
         setStage(s === "Validating..." ? "validating" : "ai", s);
         setProgress(s === "Validating..." ? 85 : 45);
       });
@@ -123,12 +118,14 @@ export function UploadDropzone() {
       setStage("ready");
       toast.success(`Extracted ${exam.questions.length} questions`);
       void navigate({ to: "/review" });
-    } catch (e) {
+      } catch (e) {
       const message = e instanceof Error ? e.message : "Extraction failed.";
       setError(message);
       toast.error("Extraction failed", { description: message });
-    }
-  }, [doc, navigate, papers, selectedPaperId, setError, setExam, setProgress, setStage]);
+      }
+    },
+    [doc, navigate, setError, setExam, setProgress, setStage],
+  );
 
   const handleImport = useCallback(
     async (file: File) => {
