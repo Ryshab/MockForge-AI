@@ -10,7 +10,7 @@ export interface IExportService {
 export const exportService: IExportService = {
   fileName(exam) {
     const slug =
-      exam.examName
+      exam.title
         .replace(/[^\w\s-]/g, "")
         .trim()
         .replace(/\s+/g, "-")
