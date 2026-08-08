@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useExtractionStore } from "@/store/extractionStore";
 import { exportService } from "@/services/exportService";
-import { ConfidenceBadge } from "./ConfidenceBadge";
+import { AnswerSourceBadge, ConfidenceBadge } from "./ConfidenceBadge";
 import { cn } from "@/lib/utils";
 
 export function ReviewEditor() {
@@ -38,6 +38,7 @@ export function ReviewEditor() {
   const [query, setQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState("all");
   const [lowOnly, setLowOnly] = useState(false);
+  const [unverifiedOnly, setUnverifiedOnly] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
@@ -48,15 +49,16 @@ export function ReviewEditor() {
     const q = query.trim().toLowerCase();
     return exam.questions.filter((item) => {
       if (sectionFilter !== "all" && item.section !== sectionFilter) return false;
-      if (lowOnly && item.confidenceScore >= 80) return false;
+      if (lowOnly && item.confidenceScore >= 0.75) return false;
+      if (unverifiedOnly && item.correctAnswer) return false;
       if (!q) return true;
       return (
         item.question.toLowerCase().includes(q) ||
-        item.options.some((o) => o.toLowerCase().includes(q)) ||
+        item.options.some((o) => o.text.toLowerCase().includes(q)) ||
         item.explanation.toLowerCase().includes(q)
       );
     });
-  }, [exam, lowOnly, query, sectionFilter]);
+  }, [exam, lowOnly, query, sectionFilter, unverifiedOnly]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -103,24 +105,25 @@ export function ReviewEditor() {
     );
   }
 
-  const lowCount = exam.questions.filter((q) => q.confidenceScore < 80).length;
+  const lowCount = exam.questions.filter((q) => q.confidenceScore < 0.75).length;
+  const unverifiedCount = exam.questions.filter((q) => !q.correctAnswer).length;
 
   return (
     <div className="space-y-6">
       <section className="surface-card grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm">
-          <span className="text-xs font-medium text-muted-foreground">Exam name</span>
-          <Input
-            value={exam.examName}
-            onChange={(e) => updateExamMeta({ examName: e.target.value })}
-          />
+          <span className="text-xs font-medium text-muted-foreground">Exam title</span>
+          <Input value={exam.title} onChange={(e) => updateExamMeta({ title: e.target.value })} />
         </label>
         <label className="text-sm">
           <span className="text-xs font-medium text-muted-foreground">Duration (min)</span>
           <Input
             type="number"
-            value={exam.duration}
-            onChange={(e) => updateExamMeta({ duration: Number(e.target.value) || 0 })}
+            value={exam.duration ?? ""}
+            placeholder="Not stated"
+            onChange={(e) =>
+              updateExamMeta({ duration: e.target.value === "" ? null : Number(e.target.value) })
+            }
           />
         </label>
         <label className="text-sm">
@@ -128,8 +131,13 @@ export function ReviewEditor() {
           <Input
             type="number"
             step="0.25"
-            value={exam.marksPerQuestion}
-            onChange={(e) => updateExamMeta({ marksPerQuestion: Number(e.target.value) || 0 })}
+            value={exam.marksPerQuestion ?? ""}
+            placeholder="Not stated"
+            onChange={(e) =>
+              updateExamMeta({
+                marksPerQuestion: e.target.value === "" ? null : Number(e.target.value),
+              })
+            }
           />
         </label>
         <label className="text-sm">
@@ -137,8 +145,13 @@ export function ReviewEditor() {
           <Input
             type="number"
             step="0.25"
-            value={exam.negativeMarking}
-            onChange={(e) => updateExamMeta({ negativeMarking: Number(e.target.value) || 0 })}
+            value={exam.negativeMarking ?? ""}
+            placeholder="Not stated"
+            onChange={(e) =>
+              updateExamMeta({
+                negativeMarking: e.target.value === "" ? null : Number(e.target.value),
+              })
+            }
           />
         </label>
       </section>
@@ -170,9 +183,16 @@ export function ReviewEditor() {
         <Button
           variant={lowOnly ? "default" : "outline"}
           onClick={() => setLowOnly((v) => !v)}
-          title="Show only questions below 80% confidence"
+          title="Show only questions below 75% confidence"
         >
           Low confidence ({lowCount})
+        </Button>
+        <Button
+          variant={unverifiedOnly ? "default" : "outline"}
+          onClick={() => setUnverifiedOnly((v) => !v)}
+          title="Show only questions with no verified answer"
+        >
+          No verified answer ({unverifiedCount})
         </Button>
         <Button
           variant="outline"
@@ -253,8 +273,17 @@ export function ReviewEditor() {
                     )}
                     <span className="truncate">{q.question || "Untitled question"}</span>
                   </button>
-                  <span className="truncate text-xs text-muted-foreground">{q.section}</span>
-                  <span className="text-right">
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
+                    {q.section}
+                    {q.sourcePage ? ` · p.${q.sourcePage}` : ""}
+                  </span>
+                  <span className="flex items-center justify-end gap-2 text-right">
+                    {q.correctAnswer ? null : (
+                      <span
+                        title="No verified answer"
+                        className="size-2 shrink-0 rounded-full bg-destructive"
+                      />
+                    )}
                     <ConfidenceBadge score={q.confidenceScore} />
                   </span>
                 </div>
@@ -271,29 +300,47 @@ export function ReviewEditor() {
                     </label>
 
                     <div className="grid gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        Options (select the correct one)
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Options (select the correct one)
+                        </span>
+                        <AnswerSourceBadge source={q.answerSource} />
+                      </div>
                       {q.options.map((option, oi) => (
-                        <div key={oi} className="flex items-center gap-2">
+                        <div key={option.id + oi} className="flex items-center gap-2">
                           <input
                             type="radio"
                             name={`correct-${q.id}`}
-                            aria-label={`Mark option ${oi + 1} correct`}
-                            checked={q.correctAnswer === option}
-                            onChange={() => updateQuestion(q.id, { correctAnswer: option })}
+                            aria-label={`Mark option ${option.id} correct`}
+                            checked={q.correctAnswer === option.id}
+                            onChange={() =>
+                              updateQuestion(q.id, {
+                                correctAnswer: option.id,
+                                answerSource: "answer-key",
+                              })
+                            }
                           />
                           <Input
-                            value={option}
+                            aria-label={`Option ${option.id} label`}
+                            value={option.id}
+                            className="w-16"
                             onChange={(e) => {
+                              const id = e.target.value;
                               const options = [...q.options];
-                              options[oi] = e.target.value;
+                              options[oi] = { ...option, id };
                               updateQuestion(q.id, {
                                 options,
-                                ...(q.correctAnswer === option
-                                  ? { correctAnswer: e.target.value }
-                                  : {}),
+                                ...(q.correctAnswer === option.id ? { correctAnswer: id } : {}),
                               });
+                            }}
+                          />
+                          <Input
+                            aria-label={`Option ${option.id} text`}
+                            value={option.text}
+                            onChange={(e) => {
+                              const options = [...q.options];
+                              options[oi] = { ...option, text: e.target.value };
+                              updateQuestion(q.id, { options });
                             }}
                           />
                           <Button
@@ -303,6 +350,9 @@ export function ReviewEditor() {
                             onClick={() =>
                               updateQuestion(q.id, {
                                 options: q.options.filter((_, i) => i !== oi),
+                                ...(q.correctAnswer === option.id
+                                  ? { correctAnswer: null, answerSource: "unavailable" as const }
+                                  : {}),
                               })
                             }
                           >
@@ -310,18 +360,43 @@ export function ReviewEditor() {
                           </Button>
                         </div>
                       ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-fit"
-                        onClick={() =>
-                          updateQuestion(q.id, {
-                            options: [...q.options, `Option ${q.options.length + 1}`],
-                          })
-                        }
-                      >
-                        <Plus className="size-4" /> Add option
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-fit"
+                          onClick={() =>
+                            updateQuestion(q.id, {
+                              options: [
+                                ...q.options,
+                                {
+                                  id:
+                                    ["A", "B", "C", "D", "E", "F"][q.options.length] ??
+                                    String(q.options.length + 1),
+                                  text: "",
+                                },
+                              ],
+                            })
+                          }
+                        >
+                          <Plus className="size-4" /> Add option
+                        </Button>
+                        {q.correctAnswer ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-fit"
+                            onClick={() =>
+                              updateQuestion(q.id, {
+                                correctAnswer: null,
+                                answerSource: "unavailable",
+                              })
+                            }
+                          >
+                            Clear answer
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
 
                     <label className="text-sm">
