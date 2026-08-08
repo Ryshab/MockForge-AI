@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PdfDocumentContent } from "@/services/pdfService";
 import type { DetectedPaper } from "@/services/paperDetectionService";
-import type { ExtractedExam, ExtractedQuestion } from "@/lib/extraction-schema";
+import { UNCATEGORIZED, type ExtractedExam, type ExtractedQuestion } from "@/lib/extraction-schema";
 
 export type PipelineStage =
   | "idle"
@@ -11,7 +11,9 @@ export type PipelineStage =
   | "detecting"
   | "awaiting-mode"
   | "awaiting-selection"
+  | "preparing"
   | "ai"
+  | "matching"
   | "validating"
   | "ready"
   | "error";
@@ -23,8 +25,10 @@ export const stageLabel: Record<PipelineStage, string> = {
   detecting: "Detecting papers...",
   "awaiting-mode": "Choose how to process this PDF",
   "awaiting-selection": "Select a paper",
-  ai: "Sending to AI...",
-  validating: "Validating...",
+  preparing: "Preparing selected pages...",
+  ai: "Extracting questions...",
+  matching: "Matching answer key...",
+  validating: "Validating questions...",
   ready: "Ready for review.",
   error: "Something went wrong",
 };
@@ -111,7 +115,7 @@ export const useExtractionStore = create<ExtractionState>()(
       addQuestion: (section) => {
         const exam = get().exam;
         if (!exam) return;
-        const options = ["Option A", "Option B", "Option C", "Option D"];
+        const options = ["A", "B", "C", "D"].map((id) => ({ id, text: "" }));
         set({
           exam: {
             ...exam,
@@ -119,12 +123,14 @@ export const useExtractionStore = create<ExtractionState>()(
               ...exam.questions,
               {
                 id: newId(),
-                section: section ?? exam.sections[0] ?? "General",
+                section: section ?? exam.sections[0] ?? UNCATEGORIZED,
                 question: "",
                 options,
-                correctAnswer: options[0]!,
+                correctAnswer: null,
+                answerSource: "unavailable",
                 explanation: "",
-                confidenceScore: 100,
+                confidenceScore: 1,
+                sourcePage: null,
               },
             ],
           },
@@ -136,7 +142,7 @@ export const useExtractionStore = create<ExtractionState>()(
         if (!exam) return;
         const index = exam.questions.findIndex((q) => q.id === id);
         if (index < 0) return;
-        const copy = { ...exam.questions[index]!, id: newId() };
+        const copy: ExtractedQuestion = { ...exam.questions[index]!, id: newId() };
         const questions = [...exam.questions];
         questions.splice(index + 1, 0, copy);
         set({ exam: { ...exam, questions } });
