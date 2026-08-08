@@ -105,7 +105,7 @@ function createGeminiProvider(apiKey: string, model = "gemini-2.5-flash"): AIPro
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 /** Fallback: Gemini through the Lovable AI Gateway when no GEMINI_API_KEY is configured. */
-function createGatewayProvider(apiKey: string, model = "google/gemini-3-flash"): AIProvider {
+function createGatewayProvider(apiKey: string, model = "google/gemini-3.6-flash"): AIProvider {
   return {
     name: `lovable-gateway:${model}`,
     async extract(request) {
