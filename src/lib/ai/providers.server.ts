@@ -95,8 +95,7 @@ function createGeminiProvider(apiKey: string, model = "gemini-2.5-flash"): AIPro
       const payload = (await response.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
-      const text =
-        payload.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      const text = payload.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
       if (!text.trim()) throw new Error("The AI returned an empty response.");
       return text;
     },

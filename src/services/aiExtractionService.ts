@@ -3,12 +3,7 @@ import { validationService } from "./validationService";
 import type { ExtractedExam } from "@/lib/extraction-schema";
 
 export type ExtractionStage =
-  | "preparing"
-  | "extracting"
-  | "matching"
-  | "validating"
-  | "repairing"
-  | "ready";
+  "preparing" | "extracting" | "matching" | "validating" | "repairing" | "ready";
 
 export interface IAIExtractionService {
   /** Extracts + validates one paper. Attempts a structured repair once on failure. */

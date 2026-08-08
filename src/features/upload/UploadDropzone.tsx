@@ -108,7 +108,10 @@ export function UploadDropzone() {
             "These pages have no readable text — the PDF is likely scanned. OCR support is coming later.",
           );
         }
-        const stageMap: Record<ExtractionStage, { stage: "ai" | "matching" | "validating" | "ready"; progress: number }> = {
+        const stageMap: Record<
+          ExtractionStage,
+          { stage: "ai" | "matching" | "validating" | "ready"; progress: number }
+        > = {
           extracting: { stage: "ai", progress: 40 },
           matching: { stage: "matching", progress: 70 },
           validating: { stage: "validating", progress: 85 },
@@ -126,7 +129,9 @@ export function UploadDropzone() {
         setStage("ready");
         const unverified = exam.questions.filter((q) => !q.correctAnswer).length;
         toast.success(`Extracted ${exam.questions.length} questions`, {
-          description: unverified ? `${unverified} have no verified answer — review them.` : undefined,
+          description: unverified
+            ? `${unverified} have no verified answer — review them.`
+            : undefined,
         });
         void navigate({ to: "/review" });
       } catch (e) {

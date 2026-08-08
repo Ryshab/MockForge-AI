@@ -6,9 +6,7 @@ const MAX_PAPER_CHARS = 120_000;
 const inputSchema = z.object({
   paperTitle: z.string().min(1),
   paperText: z.string().min(1),
-  repair: z
-    .object({ previous: z.string(), error: z.string() })
-    .optional(),
+  repair: z.object({ previous: z.string(), error: z.string() }).optional(),
 });
 
 /** Server-side entry point for AI extraction. The API key never leaves the server. */

@@ -73,7 +73,10 @@ function normalize(exam: ExtractedExam): ExtractedExam {
     seen.add(id);
 
     const options = q.options
-      .map((o, oi) => ({ id: o.id?.trim() || (LETTERS[oi] ?? String(oi + 1)), text: o.text.trim() }))
+      .map((o, oi) => ({
+        id: o.id?.trim() || (LETTERS[oi] ?? String(oi + 1)),
+        text: o.text.trim(),
+      }))
       .filter((o) => o.text.length > 0);
 
     const answer = q.correctAnswer?.trim() ?? null;
