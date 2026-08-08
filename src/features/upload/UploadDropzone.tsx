@@ -7,8 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { usePdfStore } from "@/store/pdfStore";
 import { useExtractionStore } from "@/store/extractionStore";
 import { pdfService } from "@/services/pdfService";
-import { paperDetectionService } from "@/services/paperDetectionService";
-import { aiExtractionService } from "@/services/aiExtractionService";
+import { textPreparationService } from "@/services/textPreparationService";
+import { aiExtractionService, type ExtractionStage } from "@/services/aiExtractionService";
 import { exportService } from "@/services/exportService";
 import { formatBytes, validatePdfFile } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
@@ -91,29 +91,43 @@ export function UploadDropzone() {
   );
 
   const busy = stage === "reading" || stage === "extracting-text" || stage === "detecting";
-  const extracting = stage === "ai" || stage === "validating";
+  const extracting =
+    stage === "preparing" || stage === "ai" || stage === "matching" || stage === "validating";
 
   const runExtraction = useCallback(
     async (target: ProcessingSelection) => {
       if (!doc) return;
       setError(null);
-      setStage("ai");
-      setProgress(20);
+      setStage("preparing");
+      setProgress(15);
       try {
-        const text = paperDetectionService.getRangeText(doc, target.startPage, target.endPage);
-        if (!text.trim()) {
+        // Only the selected pages are ever prepared and sent to the AI.
+        const prepared = textPreparationService.prepareRange(doc, target.startPage, target.endPage);
+        if (!prepared.text.trim()) {
           throw new Error(
-            "This paper has no readable text — it may be a scanned PDF. OCR support is coming later.",
+            "These pages have no readable text — the PDF is likely scanned. OCR support is coming later.",
           );
         }
-        const exam = await aiExtractionService.extract(target.title, text, (s) => {
-          setStage(s === "Validating..." ? "validating" : "ai", s);
-          setProgress(s === "Validating..." ? 85 : 45);
+        const stageMap: Record<ExtractionStage, { stage: "ai" | "matching" | "validating" | "ready"; progress: number }> = {
+          extracting: { stage: "ai", progress: 40 },
+          matching: { stage: "matching", progress: 70 },
+          validating: { stage: "validating", progress: 85 },
+          repairing: { stage: "ai", progress: 60 },
+          preparing: { stage: "ai", progress: 20 },
+          ready: { stage: "ready", progress: 100 },
+        };
+        const exam = await aiExtractionService.extract(target.title, prepared.text, (s) => {
+          const mapped = stageMap[s];
+          setStage(mapped.stage, s === "repairing" ? "Repairing AI response..." : undefined);
+          setProgress(mapped.progress);
         });
         setExam(exam);
         setProgress(100);
         setStage("ready");
-        toast.success(`Extracted ${exam.questions.length} questions`);
+        const unverified = exam.questions.filter((q) => !q.correctAnswer).length;
+        toast.success(`Extracted ${exam.questions.length} questions`, {
+          description: unverified ? `${unverified} have no verified answer — review them.` : undefined,
+        });
         void navigate({ to: "/review" });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Extraction failed.";
