@@ -56,6 +56,18 @@ export function ExamRunner() {
 
   const settings = attempt?.settings;
   const inProgress = attempt?.status === "in-progress";
+  const shouldAutoStart =
+    Boolean(settings?.autoStartNextSection) &&
+    inProgress &&
+    Boolean(section) &&
+    !timing?.startedAt &&
+    (attempt?.currentSectionIndex ?? 0) > 0;
+
+  useEffect(() => {
+    if (!shouldAutoStart) return;
+    startSection();
+    if (settings?.enableFullscreen) requestFullscreen();
+  }, [shouldAutoStart, startSection, settings?.enableFullscreen]);
 
   useEffect(() => {
     if (!inProgress || !settings?.warnBeforeExit) return;
@@ -110,9 +122,7 @@ export function ExamRunner() {
       if (settings?.enableFullscreen) requestFullscreen();
     };
     if (settings?.autoStartNextSection) {
-      start();
-      return null;
-    }
+    if (shouldAutoStart) return null;
     return <SectionTransition previous={previous} next={section} onStart={start} />;
   }
 
