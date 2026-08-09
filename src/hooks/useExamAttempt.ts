@@ -6,9 +6,7 @@ export function useExamAttempt() {
   const valid = isAttemptValid(exam, attempt);
 
   const section = valid ? exam!.sections[attempt!.currentSectionIndex]! : null;
-  const questionIds = section
-    ? (attempt!.questionOrder[section.id] ?? section.questionIds)
-    : [];
+  const questionIds = section ? (attempt!.questionOrder[section.id] ?? section.questionIds) : [];
   const currentQuestionId = section ? questionIds[attempt!.currentQuestionIndex] : undefined;
   const question = currentQuestionId ? (exam!.questions[currentQuestionId] ?? null) : null;
 

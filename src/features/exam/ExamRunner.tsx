@@ -176,7 +176,8 @@ export function ExamRunner() {
               "flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-lg font-bold tabular-nums",
               tone === "normal" && "border-border bg-secondary/60",
               tone === "warning" && "border-amber-500/50 bg-amber-500/15 text-amber-600",
-              tone === "critical" && "animate-pulse border-destructive/60 bg-destructive/15 text-destructive",
+              tone === "critical" &&
+                "animate-pulse border-destructive/60 bg-destructive/15 text-destructive",
             )}
             aria-live="off"
           >
@@ -232,9 +233,7 @@ export function ExamRunner() {
                     onChange={() => selectOption(question.id, option.id)}
                   />
                   <span className="text-sm">
-                    <span className="mr-2 font-semibold">
-                      {String.fromCharCode(65 + i)}.
-                    </span>
+                    <span className="mr-2 font-semibold">{String.fromCharCode(65 + i)}.</span>
                     {option.text}
                   </span>
                 </label>
@@ -282,7 +281,11 @@ export function ExamRunner() {
               {answered} answered · {unanswered} left
             </p>
             <div className="mt-4">{palette}</div>
-            <Button className="mt-5 w-full" variant="destructive" onClick={() => setConfirmOpen(true)}>
+            <Button
+              className="mt-5 w-full"
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
               Submit Section
             </Button>
           </div>

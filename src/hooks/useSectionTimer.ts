@@ -14,9 +14,7 @@ export type TimerTone = "normal" | "warning" | "critical";
  * so tab throttling, sleep or a page refresh can never rewind the clock.
  */
 export function useSectionTimer(endsAt: number | null, onExpire?: () => void) {
-  const [remaining, setRemaining] = useState(() =>
-    endsAt ? Math.max(0, endsAt - Date.now()) : 0,
-  );
+  const [remaining, setRemaining] = useState(() => (endsAt ? Math.max(0, endsAt - Date.now()) : 0));
   const expired = useRef(false);
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;

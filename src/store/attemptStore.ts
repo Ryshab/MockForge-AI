@@ -2,13 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { buildAttemptExam, seededShuffle } from "@/lib/exam-build";
 import type { ExtractedExam } from "@/lib/extraction-schema";
-import type {
-  AnswerStatus,
-  AttemptExam,
-  ExamAttempt,
-  ExamConfiguration,
-  Section,
-} from "@/types";
+import type { AnswerStatus, AttemptExam, ExamAttempt, ExamConfiguration, Section } from "@/types";
 
 const rid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -34,11 +28,7 @@ interface AttemptState {
   discardAttempt: () => void;
 }
 
-function statusFor(
-  answered: boolean,
-  marked: boolean,
-  visited: boolean,
-): AnswerStatus {
+function statusFor(answered: boolean, marked: boolean, visited: boolean): AnswerStatus {
   if (answered && marked) return "answered-marked";
   if (marked) return "marked";
   if (answered) return "answered";
