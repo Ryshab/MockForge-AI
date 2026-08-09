@@ -121,7 +121,6 @@ export function ExamRunner() {
       startSection();
       if (settings?.enableFullscreen) requestFullscreen();
     };
-    if (settings?.autoStartNextSection) {
     if (shouldAutoStart) return null;
     return <SectionTransition previous={previous} next={section} onStart={start} />;
   }
