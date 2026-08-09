@@ -40,6 +40,8 @@ export interface ExamConfiguration {
   allowReviewMode: boolean;
   enableFullscreen: boolean;
   warnBeforeExit: boolean;
+  strictSectionMode: boolean;
+  autoStartNextSection: boolean;
 }
 
 export interface Exam {
