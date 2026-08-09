@@ -19,6 +19,8 @@ export const defaultConfiguration: ExamConfiguration = {
   allowReviewMode: true,
   enableFullscreen: true,
   warnBeforeExit: true,
+  strictSectionMode: true,
+  autoStartNextSection: false,
 };
 
 const defaultSections: Section[] = [
