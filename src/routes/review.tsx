@@ -1,6 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Play } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Button } from "@/components/ui/button";
 import { ReviewEditor } from "@/features/review/ReviewEditor";
 
 export const Route = createFileRoute("/review")({
@@ -23,6 +25,13 @@ export const Route = createFileRoute("/review")({
     <PageShell
       title="Review extracted questions"
       description="Edit anything the AI got wrong, then export the exam as JSON."
+      actions={
+        <Button asChild>
+          <Link to="/mock-test">
+            <Play className="size-4" /> Start Mock Test
+          </Link>
+        </Button>
+      }
     >
       <ErrorBoundary fallbackTitle="Review failed">
         <ReviewEditor />
