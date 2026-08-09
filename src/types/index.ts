@@ -40,6 +40,8 @@ export interface ExamConfiguration {
   allowReviewMode: boolean;
   enableFullscreen: boolean;
   warnBeforeExit: boolean;
+  strictSectionMode: boolean;
+  autoStartNextSection: boolean;
 }
 
 export interface Exam {
@@ -102,4 +104,67 @@ export interface AppSettings {
   autoSaveProgress: boolean;
   compactMode: boolean;
   soundAlerts: boolean;
+}
+
+/* ---------------------------------------------------------------
+ * CBT engine — an ExamAttempt is one user's attempt at an Exam.
+ * The Exam (question paper) is never mutated by the attempt.
+ * ------------------------------------------------------------- */
+
+export interface AttemptSection {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  questionIds: string[];
+}
+
+export interface AttemptExam {
+  id: string;
+  name: string;
+  totalMarks: number;
+  marksPerQuestion: number;
+  negativeMarks: number;
+  enableNegativeMarking: boolean;
+  sections: AttemptSection[];
+  questions: Record<string, Question>;
+}
+
+export interface SectionTiming {
+  startedAt: number | null;
+  endsAt: number | null;
+  completedAt: number | null;
+}
+
+export interface AttemptSettings {
+  strictSectionMode: boolean;
+  autoStartNextSection: boolean;
+  enableFullscreen: boolean;
+  warnBeforeExit: boolean;
+  allowReviewMode: boolean;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+}
+
+export type AttemptStatus = "not-started" | "in-progress" | "completed";
+
+export interface ExamAttempt {
+  attemptId: string;
+  examId: string;
+  startedAt: number;
+  completedAt: number | null;
+  status: AttemptStatus;
+  currentSectionIndex: number;
+  currentQuestionIndex: number;
+  /** questionId -> selected option id */
+  answers: Record<string, string | null>;
+  /** questionId -> status */
+  questionStatuses: Record<string, AnswerStatus>;
+  markedForReview: string[];
+  completedSections: string[];
+  sectionTiming: Record<string, SectionTiming>;
+  settings: AttemptSettings;
+  /** sectionId -> ordered question ids for this attempt */
+  questionOrder: Record<string, string[]>;
+  /** questionId -> ordered option ids for this attempt */
+  optionOrder: Record<string, string[]>;
 }

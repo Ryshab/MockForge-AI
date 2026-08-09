@@ -21,6 +21,8 @@ const schema = z.object({
   allowReviewMode: z.boolean(),
   enableFullscreen: z.boolean(),
   warnBeforeExit: z.boolean(),
+  strictSectionMode: z.boolean(),
+  autoStartNextSection: z.boolean(),
 });
 
 type FormValues = z.input<typeof schema>;
@@ -39,6 +41,16 @@ const toggles: { name: keyof ExamConfiguration; label: string; hint: string }[] 
   },
   { name: "shuffleOptions", label: "Shuffle options", hint: "Randomise A/B/C/D order" },
   { name: "allowReviewMode", label: "Review mode", hint: "Mark questions for review" },
+  {
+    name: "strictSectionMode",
+    label: "Strict section mode",
+    hint: "Sections lock permanently once completed",
+  },
+  {
+    name: "autoStartNextSection",
+    label: "Auto-start next section",
+    hint: "Skip the transition screen and start immediately",
+  },
   { name: "enableFullscreen", label: "Fullscreen mode", hint: "Launch the test in fullscreen" },
   { name: "warnBeforeExit", label: "Warn before exit", hint: "Confirm before leaving the test" },
 ];
