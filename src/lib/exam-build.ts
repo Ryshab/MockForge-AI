@@ -13,7 +13,7 @@ function toQuestion(
   sectionId: string,
   index: number,
 ): Question {
-  return {
+  const base: Question = {
     id: q.id,
     sectionId,
     index,
@@ -22,8 +22,8 @@ function toQuestion(
     options: q.options.map((o) => ({ id: o.id, label: o.id, text: o.text })),
     correctOptionIds: q.correctAnswer ? [q.correctAnswer] : [],
     explanation: q.explanation,
-    sourcePage: q.sourcePage ?? undefined,
   };
+  return q.sourcePage === null ? base : { ...base, sourcePage: q.sourcePage };
 }
 
 /**
