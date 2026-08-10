@@ -15,8 +15,8 @@ export function MediaImage({
   maxHeight = 320,
 }: {
   media: ExtractedMedia;
-  className?: string;
-  maxHeight?: number;
+  className?: string | undefined;
+  maxHeight?: number | undefined;
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
