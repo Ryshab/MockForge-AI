@@ -54,7 +54,7 @@ export function ReviewEditor() {
       if (!q) return true;
       return (
         item.question.toLowerCase().includes(q) ||
-        item.options.some((o) => o.text.toLowerCase().includes(q)) ||
+        item.options.some((o) => (o.text ?? "").toLowerCase().includes(q)) ||
         item.explanation.toLowerCase().includes(q)
       );
     });
@@ -336,7 +336,8 @@ export function ReviewEditor() {
                           />
                           <Input
                             aria-label={`Option ${option.id} text`}
-                            value={option.text}
+                            value={option.text ?? ""}
+                            placeholder={option.media.length > 0 ? "(image option)" : ""}
                             onChange={(e) => {
                               const options = [...q.options];
                               options[oi] = { ...option, text: e.target.value };
@@ -374,6 +375,7 @@ export function ReviewEditor() {
                                     ["A", "B", "C", "D", "E", "F"][q.options.length] ??
                                     String(q.options.length + 1),
                                   text: "",
+                                  media: [],
                                 },
                               ],
                             })
