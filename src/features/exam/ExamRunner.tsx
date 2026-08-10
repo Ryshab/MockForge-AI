@@ -15,6 +15,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { MediaList } from "@/components/media/MediaBlock";
+import { ContextPanel } from "@/components/media/ContextPanel";
 import { useSectionTimer } from "@/hooks/useSectionTimer";
 import { useExamAttempt } from "@/hooks/useExamAttempt";
 import { useAttemptStore } from "@/store/attemptStore";
@@ -205,9 +207,20 @@ export function ExamRunner() {
           <p className="text-sm font-semibold text-muted-foreground">
             Question {attempt.currentQuestionIndex + 1} of {questionIds.length}
           </p>
+
+          <ContextPanel
+            className="mt-3"
+            contexts={question.contextIds
+              .map((cid) => exam.contexts[cid])
+              .filter((c): c is NonNullable<typeof c> => Boolean(c))}
+          />
+
           <h2 className="mt-3 whitespace-pre-wrap text-lg font-medium leading-relaxed">
             {question.text}
           </h2>
+
+          {/* Figures are shown exactly as they appear in the source paper. */}
+          <MediaList media={question.media} className="mt-4" maxHeight={360} />
 
           <fieldset className="mt-6 space-y-3">
             <legend className="sr-only">Options</legend>
@@ -235,6 +248,7 @@ export function ExamRunner() {
                   <span className="text-sm">
                     <span className="mr-2 font-semibold">{String.fromCharCode(65 + i)}.</span>
                     {option.text}
+                    <MediaList media={option.media} className="mt-2" maxHeight={200} />
                   </span>
                 </label>
               );
