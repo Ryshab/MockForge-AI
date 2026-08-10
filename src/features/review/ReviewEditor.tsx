@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { MediaList } from "@/components/media/MediaBlock";
 import {
   ChevronDown,
   ChevronUp,
