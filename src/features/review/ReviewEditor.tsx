@@ -5,6 +5,7 @@ import {
   ChevronUp,
   Copy,
   Download,
+  ImageOff,
   Merge,
   Plus,
   Scissors,
