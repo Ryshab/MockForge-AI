@@ -19,9 +19,12 @@ function toQuestion(
     index,
     type: "mcq",
     text: q.question,
-    options: q.options.map((o) => ({ id: o.id, label: o.id, text: o.text })),
+    options: q.options.map((o) => ({ id: o.id, label: o.id, text: o.text, media: o.media })),
     correctOptionIds: q.correctAnswer ? [q.correctAnswer] : [],
     explanation: q.explanation,
+    media: q.media,
+    contextIds: q.contextIds,
+    mediaWarning: q.mediaWarning,
   };
   return q.sourcePage === null ? base : { ...base, sourcePage: q.sourcePage };
 }
@@ -35,7 +38,10 @@ export function buildAttemptExam(
   configuration: ExamConfiguration,
   configSections: Section[],
 ): AttemptExam {
-  const pool = extracted.questions.filter((q) => q.question.trim().length > 0);
+  // An image-only question still has content, so visuals count as substance too.
+  const pool = extracted.questions.filter(
+    (q) => q.question.trim().length > 0 || q.media.length > 0,
+  );
   if (pool.length === 0) throw new Error("This exam has no questions to attempt.");
 
   const used = new Set<string>();
@@ -100,6 +106,7 @@ export function buildAttemptExam(
     enableNegativeMarking: configuration.enableNegativeMarking,
     sections,
     questions,
+    contexts: Object.fromEntries(extracted.contexts.map((c) => [c.id, c])),
   };
 }
 
