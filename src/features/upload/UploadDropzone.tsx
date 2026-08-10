@@ -9,6 +9,7 @@ import { useExtractionStore } from "@/store/extractionStore";
 import { pdfService } from "@/services/pdfService";
 import { textPreparationService } from "@/services/textPreparationService";
 import { aiExtractionService, type ExtractionStage } from "@/services/aiExtractionService";
+import { mediaAttachmentService } from "@/services/mediaAttachmentService";
 import { exportService } from "@/services/exportService";
 import { formatBytes, validatePdfFile } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ export function UploadDropzone() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+  /** Kept so referenced visuals can be cropped from the original file later. */
+  const sourceFileRef = useRef<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
   const [selection, setSelection] = useState<ProcessingSelection | null>(null);
@@ -133,7 +136,7 @@ export function UploadDropzone() {
           extracted,
           doc,
           sourceFileRef.current,
-          (mediaNote) => setProgress(95, mediaNote),
+          (mediaNote: string) => setProgress(95, mediaNote),
         );
         setExam(exam);
         setProgress(100);
