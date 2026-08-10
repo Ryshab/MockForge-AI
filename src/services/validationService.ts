@@ -89,7 +89,7 @@ function coerceLegacy(input: unknown): unknown {
       const q = { ...(raw as Record<string, unknown>) };
       const options = Array.isArray(q["options"]) ? q["options"] : [];
       const normalizedOptions = options.map((o, i) => {
-        const option =
+        const option: Record<string, unknown> =
           typeof o === "string"
             ? { id: LETTERS[i] ?? String(i + 1), text: o }
             : { ...(o as Record<string, unknown>) };
