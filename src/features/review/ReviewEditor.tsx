@@ -359,8 +359,20 @@ export function ReviewEditor() {
                           >
                             <Trash2 className="size-4" />
                           </Button>
+                          <MediaList media={option.media} maxHeight={90} />
                         </div>
                       ))}
+                      {(q.media.length > 0 || q.mediaWarning) && (
+                        <div className="space-y-2 rounded-lg border border-border bg-secondary/20 p-3">
+                          {q.mediaWarning ? (
+                            <p className="flex items-start gap-2 text-xs text-destructive">
+                              <ImageOff className="mt-0.5 size-3.5 shrink-0" />
+                              {q.mediaWarning}
+                            </p>
+                          ) : null}
+                          <MediaList media={q.media} maxHeight={220} />
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
