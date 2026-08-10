@@ -47,8 +47,8 @@ export function MediaBlock({
   maxHeight,
 }: {
   media: ExtractedMedia;
-  className?: string;
-  maxHeight?: number;
+  className?: string | undefined;
+  maxHeight?: number | undefined;
 }) {
   if (media.type === "table" && media.table && media.table.rows.length > 0) {
     return (
@@ -66,8 +66,8 @@ export function MediaList({
   maxHeight,
 }: {
   media: ExtractedMedia[];
-  className?: string;
-  maxHeight?: number;
+  className?: string | undefined;
+  maxHeight?: number | undefined;
 }) {
   if (media.length === 0) return null;
   return (
