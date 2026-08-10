@@ -141,20 +141,28 @@ export const pdfService: IPDFService = {
       let visuals: PageVisual[] = [];
       try {
         const opList = await page.getOperatorList();
-        const OPS = pdfjs.OPS;
+        const OPS = pdfjs.OPS as unknown as Record<string, number>;
         const paintOps = new Set<number>(
-          [OPS.paintImageXObject, OPS.paintJpegXObject, OPS.paintInlineImageXObject].filter(
-            (op) => typeof op === "number",
-          ),
+          [
+            OPS["paintImageXObject"],
+            OPS["paintJpegXObject"],
+            OPS["paintInlineImageXObject"],
+            OPS["paintImageMaskXObject"],
+          ].filter((op): op is number => typeof op === "number"),
         );
+        const vpTransform = viewport.transform as number[];
+        const toViewport = (x: number, y: number): [number, number] => [
+          vpTransform[0]! * x + vpTransform[2]! * y + vpTransform[4]!,
+          vpTransform[1]! * x + vpTransform[3]! * y + vpTransform[5]!,
+        ];
         let ctm: number[] = [1, 0, 0, 1, 0, 0];
         const stack: number[][] = [];
         const boxes: PageBox[] = [];
         for (let k = 0; k < opList.fnArray.length; k += 1) {
           const fn = opList.fnArray[k]!;
-          if (fn === OPS.save) stack.push([...ctm]);
-          else if (fn === OPS.restore) ctm = stack.pop() ?? [1, 0, 0, 1, 0, 0];
-          else if (fn === OPS.transform)
+          if (fn === OPS["save"]) stack.push([...ctm]);
+          else if (fn === OPS["restore"]) ctm = stack.pop() ?? [1, 0, 0, 1, 0, 0];
+          else if (fn === OPS["transform"])
             ctm = pdfjs.Util.transform(ctm, opList.argsArray[k] as number[]);
           else if (paintOps.has(fn)) {
             const corners: [number, number][] = [
@@ -163,22 +171,18 @@ export const pdfService: IPDFService = {
               [0, 1],
               [1, 1],
             ];
-            const pts = corners.map(([ux, uy]) => [
-              ctm[0]! * ux + ctm[2]! * uy + ctm[4]!,
-              ctm[1]! * ux + ctm[3]! * uy + ctm[5]!,
-            ]);
-            const xs = pts.map((p) => p[0]!);
-            const ys = pts.map((p) => p[1]!);
-            const rect = viewport.convertToViewportRectangle([
-              Math.min(...xs),
-              Math.min(...ys),
-              Math.max(...xs),
-              Math.max(...ys),
-            ]) as number[];
-            const x0 = Math.min(rect[0]!, rect[2]!);
-            const x1 = Math.max(rect[0]!, rect[2]!);
-            const y0 = Math.min(rect[1]!, rect[3]!);
-            const y1 = Math.max(rect[1]!, rect[3]!);
+            const pts = corners
+              .map(([ux, uy]) => [
+                ctm[0]! * ux + ctm[2]! * uy + ctm[4]!,
+                ctm[1]! * ux + ctm[3]! * uy + ctm[5]!,
+              ])
+              .map(([px, py]) => toViewport(px!, py!));
+            const xs = pts.map((p) => p[0]);
+            const ys = pts.map((p) => p[1]);
+            const x0 = Math.min(...xs);
+            const x1 = Math.max(...xs);
+            const y0 = Math.min(...ys);
+            const y1 = Math.max(...ys);
             const box: PageBox = {
               x: x0 / viewport.width,
               y: y0 / viewport.height,
