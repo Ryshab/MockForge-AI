@@ -1,13 +1,74 @@
 import type { PDFMetadata } from "@/types";
 
+/** Normalized (0–1) box on the page, origin top-left. */
+export interface PageBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A visual region detected in the original PDF (embedded image / diagram bitmap). */
+export interface PageVisual {
+  /** Stable inventory id handed to the AI, e.g. "v3-1". */
+  id: string;
+  pageNumber: number;
+  box: PageBox;
+}
+
+export interface PageTextItem {
+  str: string;
+  /** Normalized top-left origin coordinates. */
+  x: number;
+  y: number;
+}
+
 export interface PdfPage {
   pageNumber: number;
   text: string;
+  /** Page size in PDF points at scale 1 (used to size crops). */
+  width: number;
+  height: number;
+  visuals: PageVisual[];
+  items: PageTextItem[];
 }
 
 export interface PdfDocumentContent {
   metadata: PDFMetadata;
   pages: PdfPage[];
+}
+
+function unionBox(a: PageBox, b: PageBox): PageBox {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y,
+  };
+}
+
+function overlapsOrTouches(a: PageBox, b: PageBox, gap = 0.02) {
+  return (
+    a.x < b.x + b.width + gap &&
+    b.x < a.x + a.width + gap &&
+    a.y < b.y + b.height + gap &&
+    b.y < a.y + a.height + gap
+  );
+}
+
+/** PDFs often slice one diagram into many bitmaps — stitch neighbours back together. */
+function mergeBoxes(boxes: PageBox[]): PageBox[] {
+  const out: PageBox[] = [];
+  for (const box of boxes) {
+    const hit = out.findIndex((b) => overlapsOrTouches(b, box));
+    if (hit >= 0) out[hit] = unionBox(out[hit]!, box);
+    else out.push(box);
+  }
+  // A merge can make two groups adjacent; one more pass settles almost every case.
+  if (out.length !== boxes.length) return mergeBoxes(out);
+  return out;
 }
 
 /**
