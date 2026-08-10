@@ -1,9 +1,13 @@
+import type { ExtractedContext, ExtractedMedia } from "@/lib/extraction-schema";
+
 export type QuestionType = "mcq" | "multiple" | "numeric";
 
 export interface QuestionOption {
   id: string;
   label: string;
-  text: string;
+  /** null for image-only options. */
+  text: string | null;
+  media: ExtractedMedia[];
 }
 
 export interface Question {
@@ -18,6 +22,10 @@ export interface Question {
   marks?: number;
   negativeMarks?: number;
   sourcePage?: number;
+  media: ExtractedMedia[];
+  /** Ids into AttemptExam.contexts — shared passages / data the question needs. */
+  contextIds: string[];
+  mediaWarning?: string | null;
 }
 
 export interface Section {
@@ -127,6 +135,8 @@ export interface AttemptExam {
   enableNegativeMarking: boolean;
   sections: AttemptSection[];
   questions: Record<string, Question>;
+  /** Shared passages, case studies and instruction blocks, stored once. */
+  contexts: Record<string, ExtractedContext>;
 }
 
 export interface SectionTiming {

@@ -9,6 +9,7 @@ import { useExtractionStore } from "@/store/extractionStore";
 import { pdfService } from "@/services/pdfService";
 import { textPreparationService } from "@/services/textPreparationService";
 import { aiExtractionService, type ExtractionStage } from "@/services/aiExtractionService";
+import { mediaAttachmentService } from "@/services/mediaAttachmentService";
 import { exportService } from "@/services/exportService";
 import { formatBytes, validatePdfFile } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ export function UploadDropzone() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+  /** Kept so referenced visuals can be cropped from the original file later. */
+  const sourceFileRef = useRef<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
   const [selection, setSelection] = useState<ProcessingSelection | null>(null);
@@ -51,6 +54,7 @@ export function UploadDropzone() {
         return;
       }
 
+      sourceFileRef.current = file;
       resetPdf();
       resetExtraction();
       setSelection(null);
@@ -119,11 +123,21 @@ export function UploadDropzone() {
           preparing: { stage: "ai", progress: 20 },
           ready: { stage: "ready", progress: 100 },
         };
-        const exam = await aiExtractionService.extract(target.title, prepared.text, (s) => {
+        const extracted = await aiExtractionService.extract(target.title, prepared.text, (s) => {
           const mapped = stageMap[s];
           setStage(mapped.stage, s === "repairing" ? "Repairing AI response..." : undefined);
           setProgress(mapped.progress);
         });
+
+        // Crop the referenced regions out of the ORIGINAL PDF — nothing is redrawn.
+        setStage("validating", "Preserving diagrams and tables...");
+        setProgress(92);
+        const exam = await mediaAttachmentService.attach(
+          extracted,
+          doc,
+          sourceFileRef.current,
+          (mediaNote: string) => setProgress(95, mediaNote),
+        );
         setExam(exam);
         setProgress(100);
         setStage("ready");

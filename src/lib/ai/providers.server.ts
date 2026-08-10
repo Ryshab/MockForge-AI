@@ -40,6 +40,31 @@ answer-key matching, section detection and text quality. It is never proof the a
 OPTIONS
 - Use the paper's own labels as option ids ("A"/"B"/"C"/"D" or "1"/"2"/"3"/"4").
 - correctAnswer must exactly equal one of that question's option ids, or be null.
+- An option can be an image (common in reasoning papers). If an option has no text, set
+  "text": null and give it a media entry with the matching "ref" from the VISUAL INVENTORY.
+
+VISUALS (diagrams, figures, charts, tables, equations) — critical
+- Some pages list a VISUAL INVENTORY line: [VISUALS on this page: v3-1 (top, left, ~40% page width); ...].
+  Those ids point at real regions of the original PDF. The app crops the ORIGINAL image for
+  anything you reference — so you must NEVER describe a diagram instead of referencing it, and
+  never try to reproduce it as ASCII, markdown or text.
+- If a question depends on a figure, chart, map, circuit, geometry drawing or an image option,
+  add a media entry with the best-matching inventory "ref" (match by page and position order).
+- If the text clearly implies a visual ("in the figure below", "the given diagram", "study the
+  chart") but no inventory id fits, still add a media entry with "ref": "page:N" so the app can
+  recover the region from page N. Never drop the question and never pretend the visual is absent.
+- Tables: if you can reconstruct every header, row and cell exactly, return structured
+  "table" data (that renders as a real table). If the table is ambiguous, merged or partly
+  graphical, set "table": null and give a "ref" so the original is preserved as an image.
+- Mathematical/chemical expressions stay in the question text as plain text; only use
+  "equation" media when the expression is an image in the PDF.
+
+SHARED CONTENT (passages, case studies, common data)
+- When several questions share a reading passage, case study, instruction block or data table
+  ("Directions for questions 96-100", "Read the passage and answer"), store that block ONCE in
+  "contexts" with a stable id and list that id in each dependent question's "contextIds".
+- Copy shared text verbatim; do not summarise it and do not duplicate it inside every question.
+- A question that stands alone gets "contextIds": [].
 
 SOURCE PAGE
 Each page of input is prefixed with a "--- Page N ---" marker. Set sourcePage to the N the

@@ -58,6 +58,9 @@ interface ExtractionState {
   mergeQuestions: (ids: string[]) => void;
   splitQuestion: (id: string) => void;
   renameSection: (from: string, to: string) => void;
+  /** Removes one visual from a question or from one of its options. */
+  removeMedia: (questionId: string, mediaId: string, optionId?: string) => void;
+  dismissMediaWarning: (questionId: string) => void;
   reset: () => void;
 }
 
@@ -115,7 +118,7 @@ export const useExtractionStore = create<ExtractionState>()(
       addQuestion: (section) => {
         const exam = get().exam;
         if (!exam) return;
-        const options = ["A", "B", "C", "D"].map((id) => ({ id, text: "" }));
+        const options = ["A", "B", "C", "D"].map((id) => ({ id, text: "", media: [] }));
         set({
           exam: {
             ...exam,
@@ -131,6 +134,9 @@ export const useExtractionStore = create<ExtractionState>()(
                 explanation: "",
                 confidenceScore: 1,
                 sourcePage: null,
+                contextIds: [],
+                media: [],
+                mediaWarning: null,
               },
             ],
           },
@@ -213,6 +219,43 @@ export const useExtractionStore = create<ExtractionState>()(
             sections: Array.from(new Set(exam.sections.map((s) => (s === from ? name : s)))),
             questions: exam.questions.map((q) =>
               q.section === from ? { ...q, section: name } : q,
+            ),
+          },
+        });
+      },
+
+      removeMedia: (questionId, mediaId, optionId) => {
+        const exam = get().exam;
+        if (!exam) return;
+        set({
+          exam: {
+            ...exam,
+            questions: exam.questions.map((q) => {
+              if (q.id !== questionId) return q;
+              if (optionId) {
+                return {
+                  ...q,
+                  options: q.options.map((o) =>
+                    o.id === optionId
+                      ? { ...o, media: o.media.filter((m) => m.id !== mediaId) }
+                      : o,
+                  ),
+                };
+              }
+              return { ...q, media: q.media.filter((m) => m.id !== mediaId) };
+            }),
+          },
+        });
+      },
+
+      dismissMediaWarning: (questionId) => {
+        const exam = get().exam;
+        if (!exam) return;
+        set({
+          exam: {
+            ...exam,
+            questions: exam.questions.map((q) =>
+              q.id === questionId ? { ...q, mediaWarning: null } : q,
             ),
           },
         });
