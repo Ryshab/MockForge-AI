@@ -55,7 +55,10 @@ function questionBand(page: PdfPage, question: string, nextQuestion?: string): P
   return { x: 0.03, y: startY, width: 0.94, height };
 }
 
-function findVisualBox(doc: PdfDocumentContent, ref: string): { page: number; box: PageBox } | null {
+function findVisualBox(
+  doc: PdfDocumentContent,
+  ref: string,
+): { page: number; box: PageBox } | null {
   const match = /^v(\d+)-(\d+)$/i.exec(ref.trim());
   if (!match) return null;
   const pageNumber = Number(match[1]);
@@ -116,11 +119,7 @@ export const mediaAttachmentService: IMediaAttachmentService = {
       const key = `m${index}`;
       const located = media.ref ? findVisualBox(doc, media.ref) : null;
       const pageNumber =
-        located?.page ??
-        refPage(media.ref) ??
-        media.sourcePage ??
-        question?.sourcePage ??
-        null;
+        located?.page ?? refPage(media.ref) ?? media.sourcePage ?? question?.sourcePage ?? null;
 
       let box = located?.box ?? null;
       if (!box && pageNumber) {
@@ -166,7 +165,8 @@ export const mediaAttachmentService: IMediaAttachmentService = {
       slot.media.url = await assetStore.put(dataUrl);
       slot.media.resolved = true;
       cropIndex += 1;
-      if (cropIndex % 8 === 0) onProgress?.(`Preserving visuals (${cropIndex}/${requests.length})…`);
+      if (cropIndex % 8 === 0)
+        onProgress?.(`Preserving visuals (${cropIndex}/${requests.length})…`);
     }
 
     for (const slot of [...unresolved, ...slots.filter((s) => !s.media.resolved)]) {

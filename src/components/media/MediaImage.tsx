@@ -92,7 +92,11 @@ export function MediaImage({
             {media.sourcePage ? ` · page ${media.sourcePage}` : ""}
           </DialogTitle>
           {src ? (
-            <img src={src} alt={alt} className="max-h-[75vh] w-full rounded-md bg-white object-contain" />
+            <img
+              src={src}
+              alt={alt}
+              className="max-h-[75vh] w-full rounded-md bg-white object-contain"
+            />
           ) : null}
         </DialogContent>
       </Dialog>

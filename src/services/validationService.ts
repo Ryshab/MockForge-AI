@@ -72,9 +72,13 @@ function coerceLegacy(input: unknown): unknown {
       const c = { ...(raw as Record<string, unknown>) };
       if (typeof c["id"] !== "string" || !c["id"].trim()) c["id"] = `context-${i + 1}`;
       const type = typeof c["type"] === "string" ? c["type"] : "passage";
-      c["type"] = ["passage", "case-study", "data-table", "instructions", "diagram-context"].includes(
-        type,
-      )
+      c["type"] = [
+        "passage",
+        "case-study",
+        "data-table",
+        "instructions",
+        "diagram-context",
+      ].includes(type)
         ? type
         : "passage";
       if (typeof c["content"] !== "string") c["content"] = "";

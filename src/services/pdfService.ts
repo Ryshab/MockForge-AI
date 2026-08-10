@@ -129,7 +129,10 @@ export const pdfService: IPDFService = {
       for (const item of content.items) {
         if (!("str" in item) || !item.str.trim()) continue;
         const tx = item.transform as number[];
-        const [vx, vy] = viewport.convertToViewportPoint(tx[4] ?? 0, tx[5] ?? 0) as [number, number];
+        const [vx, vy] = viewport.convertToViewportPoint(tx[4] ?? 0, tx[5] ?? 0) as [
+          number,
+          number,
+        ];
         items.push({
           str: item.str,
           x: vx / viewport.width,
