@@ -117,13 +117,96 @@ export const pdfService: IPDFService = {
     const pages: PdfPage[] = [];
     for (let i = 1; i <= doc.numPages; i += 1) {
       const page = await doc.getPage(i);
+      const viewport = page.getViewport({ scale: 1 });
       const content = await page.getTextContent();
       const text = content.items
         .map((item) => ("str" in item ? item.str : ""))
         .join(" ")
         .replace(/[ \t]+/g, " ")
         .trim();
-      pages.push({ pageNumber: i, text });
+
+      const items: PageTextItem[] = [];
+      for (const item of content.items) {
+        if (!("str" in item) || !item.str.trim()) continue;
+        const tx = item.transform as number[];
+        const [vx, vy] = viewport.convertToViewportPoint(tx[4] ?? 0, tx[5] ?? 0) as [number, number];
+        items.push({
+          str: item.str,
+          x: vx / viewport.width,
+          y: vy / viewport.height,
+        });
+      }
+
+      // Visual inventory: embedded bitmaps, in reading order.
+      let visuals: PageVisual[] = [];
+      try {
+        const opList = await page.getOperatorList();
+        const OPS = pdfjs.OPS;
+        const paintOps = new Set<number>(
+          [OPS.paintImageXObject, OPS.paintJpegXObject, OPS.paintInlineImageXObject].filter(
+            (op) => typeof op === "number",
+          ),
+        );
+        let ctm: number[] = [1, 0, 0, 1, 0, 0];
+        const stack: number[][] = [];
+        const boxes: PageBox[] = [];
+        for (let k = 0; k < opList.fnArray.length; k += 1) {
+          const fn = opList.fnArray[k]!;
+          if (fn === OPS.save) stack.push([...ctm]);
+          else if (fn === OPS.restore) ctm = stack.pop() ?? [1, 0, 0, 1, 0, 0];
+          else if (fn === OPS.transform)
+            ctm = pdfjs.Util.transform(ctm, opList.argsArray[k] as number[]);
+          else if (paintOps.has(fn)) {
+            const corners: [number, number][] = [
+              [0, 0],
+              [1, 0],
+              [0, 1],
+              [1, 1],
+            ];
+            const pts = corners.map(([ux, uy]) => [
+              ctm[0]! * ux + ctm[2]! * uy + ctm[4]!,
+              ctm[1]! * ux + ctm[3]! * uy + ctm[5]!,
+            ]);
+            const xs = pts.map((p) => p[0]!);
+            const ys = pts.map((p) => p[1]!);
+            const rect = viewport.convertToViewportRectangle([
+              Math.min(...xs),
+              Math.min(...ys),
+              Math.max(...xs),
+              Math.max(...ys),
+            ]) as number[];
+            const x0 = Math.min(rect[0]!, rect[2]!);
+            const x1 = Math.max(rect[0]!, rect[2]!);
+            const y0 = Math.min(rect[1]!, rect[3]!);
+            const y1 = Math.max(rect[1]!, rect[3]!);
+            const box: PageBox = {
+              x: x0 / viewport.width,
+              y: y0 / viewport.height,
+              width: (x1 - x0) / viewport.width,
+              height: (y1 - y0) / viewport.height,
+            };
+            // Ignore hairlines, rules and watermark-sized specks.
+            if (box.width > 0.03 && box.height > 0.015 && box.width * box.height > 0.002) {
+              boxes.push(box);
+            }
+          }
+        }
+        visuals = mergeBoxes(boxes)
+          .sort((a, b) => a.y - b.y || a.x - b.x)
+          .slice(0, 40)
+          .map((box, index) => ({ id: `v${i}-${index + 1}`, pageNumber: i, box }));
+      } catch {
+        // Operator lists can fail on damaged PDFs — text extraction still stands.
+      }
+
+      pages.push({
+        pageNumber: i,
+        text,
+        width: viewport.width,
+        height: viewport.height,
+        visuals,
+        items,
+      });
       page.cleanup();
       // Progressive: 15% -> 70% across the document, yielding to the UI thread.
       onProgress?.(15 + Math.round((i / doc.numPages) * 55), "Extracting text...");
