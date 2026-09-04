@@ -351,8 +351,8 @@ export function UploadDropzone() {
           </div>
         ) : (
           <p className="mt-4 text-sm text-muted-foreground">
-             Upload a paper to see its page count and metadata, then choose exactly which pages to
-             send for extraction.
+            Upload a paper to see its page count and metadata, then choose exactly which pages to
+            send for extraction.
           </p>
         )}
 
