@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MediaList } from "@/components/media/MediaBlock";
+import { MediaBlock } from "@/components/media/MediaBlock";
+import { ContextPanel } from "@/components/media/ContextPanel";
 import {
   ChevronDown,
   ChevronUp,
@@ -35,6 +36,8 @@ export function ReviewEditor() {
     mergeQuestions,
     splitQuestion,
     renameSection,
+    removeMedia,
+    dismissMediaWarning,
   } = useExtractionStore();
 
   const [query, setQuery] = useState("");
@@ -109,6 +112,25 @@ export function ReviewEditor() {
 
   const lowCount = exam.questions.filter((q) => q.confidenceScore < 0.75).length;
   const unverifiedCount = exam.questions.filter((q) => !q.correctAnswer).length;
+
+  const editableMedia = (questionId: string, media: typeof exam.questions[number]["media"], maxHeight: number) => (
+    <div className="space-y-3">
+      {media.map((item) => (
+        <div key={item.id} className="flex items-start gap-2">
+          <MediaBlock media={item} maxHeight={maxHeight} className="min-w-0 flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Remove visual ${item.alt || item.id}`}
+            title="Remove visual"
+            onClick={() => removeMedia(questionId, item.id)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -292,6 +314,11 @@ export function ReviewEditor() {
 
                 {open ? (
                   <div className="mt-3 grid gap-3 rounded-xl bg-secondary/30 p-4">
+                     <ContextPanel
+                       contexts={q.contextIds
+                         .map((contextId) => exam.contexts.find((context) => context.id === contextId))
+                         .filter((context): context is NonNullable<typeof context> => Boolean(context))}
+                     />
                     <label className="text-sm">
                       <span className="text-xs font-medium text-muted-foreground">Question</span>
                       <Textarea
@@ -361,18 +388,45 @@ export function ReviewEditor() {
                           >
                             <Trash2 className="size-4" />
                           </Button>
-                          <MediaList media={option.media} maxHeight={90} />
+                           {option.media.length > 0 ? (
+                             <div className="min-w-0 flex-1">
+                               {option.media.map((item) => (
+                                 <div key={item.id} className="flex items-start gap-2">
+                                   <MediaBlock media={item} maxHeight={90} className="min-w-0 flex-1" />
+                                   <Button
+                                     variant="ghost"
+                                     size="icon"
+                                     aria-label={`Remove visual ${item.alt || item.id}`}
+                                     title="Remove visual"
+                                     onClick={() => removeMedia(q.id, item.id, option.id)}
+                                   >
+                                     <Trash2 className="size-4" />
+                                   </Button>
+                                 </div>
+                               ))}
+                             </div>
+                           ) : null}
                         </div>
                       ))}
                       {(q.media.length > 0 || q.mediaWarning) && (
                         <div className="space-y-2 rounded-lg border border-border bg-secondary/20 p-3">
-                          {q.mediaWarning ? (
-                            <p className="flex items-start gap-2 text-xs text-destructive">
-                              <ImageOff className="mt-0.5 size-3.5 shrink-0" />
-                              {q.mediaWarning}
-                            </p>
+                           {q.mediaWarning ? (
+                             <div className="flex items-start gap-2 text-xs text-destructive">
+                               <ImageOff className="mt-0.5 size-3.5 shrink-0" />
+                               <p className="min-w-0 flex-1">{q.mediaWarning}</p>
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 className="-mr-1 -mt-1 size-7 text-destructive hover:text-destructive"
+                                 aria-label="Dismiss visual warning"
+                                 title="Dismiss warning"
+                                 onClick={() => dismissMediaWarning(q.id)}
+                               >
+                                 <span aria-hidden="true">×</span>
+                               </Button>
+                             </div>
                           ) : null}
-                          <MediaList media={q.media} maxHeight={220} />
+                           {editableMedia(q.id, q.media, 220)}
                         </div>
                       )}
                       <div className="flex flex-wrap gap-2">
