@@ -49,7 +49,7 @@ function unionBox(a: PageBox, b: PageBox): PageBox {
   };
 }
 
-function overlapsOrTouches(a: PageBox, b: PageBox, gap = 0.02) {
+function overlapsOrTouches(a: PageBox, b: PageBox, gap = 0.002) {
   return (
     a.x < b.x + b.width + gap &&
     b.x < a.x + a.width + gap &&
@@ -118,14 +118,9 @@ export const pdfService: IPDFService = {
     for (let i = 1; i <= doc.numPages; i += 1) {
       const page = await doc.getPage(i);
       const viewport = page.getViewport({ scale: 1 });
-      const content = await page.getTextContent();
-      const text = content.items
-        .map((item) => ("str" in item ? item.str : ""))
-        .join(" ")
-        .replace(/[ \t]+/g, " ")
-        .trim();
-
       const items: PageTextItem[] = [];
+      const textItems: PageTextItem[] = [];
+      const content = await page.getTextContent();
       for (const item of content.items) {
         if (!("str" in item) || !item.str.trim()) continue;
         const tx = item.transform as number[];
@@ -133,12 +128,36 @@ export const pdfService: IPDFService = {
           number,
           number,
         ];
-        items.push({
+        const textItem = {
           str: item.str,
           x: vx / viewport.width,
           y: vy / viewport.height,
-        });
+        };
+        items.push(textItem);
+        textItems.push(textItem);
       }
+
+      // Preserve line breaks and reading order. PDF content streams often put
+      // columns and option labels in an order that is not human-readable.
+      const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
+      for (const item of [...textItems].sort((a, b) => a.y - b.y || a.x - b.x)) {
+        const line = lines.find((candidate) => Math.abs(candidate.y - item.y) < 0.009);
+        if (line) line.parts.push({ x: item.x, str: item.str });
+        else lines.push({ y: item.y, parts: [{ x: item.x, str: item.str }] });
+      }
+      const text = lines
+        .sort((a, b) => a.y - b.y)
+        .map((line) =>
+          line.parts
+            .sort((a, b) => a.x - b.x)
+            .map((part) => part.str)
+            .join(" ")
+            .replace(/[ \t]+/g, " ")
+            .trim(),
+        )
+        .filter(Boolean)
+        .join("\n")
+        .trim();
 
       // Visual inventory: embedded bitmaps, in reading order.
       let visuals: PageVisual[] = [];
@@ -186,11 +205,19 @@ export const pdfService: IPDFService = {
             const x1 = Math.max(...xs);
             const y0 = Math.min(...ys);
             const y1 = Math.max(...ys);
-            const box: PageBox = {
+            const rawBox: PageBox = {
               x: x0 / viewport.width,
               y: y0 / viewport.height,
               width: (x1 - x0) / viewport.width,
               height: (y1 - y0) / viewport.height,
+            };
+            const x = Math.max(0, Math.min(1, rawBox.x));
+            const y = Math.max(0, Math.min(1, rawBox.y));
+            const box: PageBox = {
+              x,
+              y,
+              width: Math.max(0, Math.min(1 - x, rawBox.width)),
+              height: Math.max(0, Math.min(1 - y, rawBox.height)),
             };
             // Ignore hairlines, rules and watermark-sized specks.
             if (box.width > 0.03 && box.height > 0.015 && box.width * box.height > 0.002) {
@@ -200,7 +227,7 @@ export const pdfService: IPDFService = {
         }
         visuals = mergeBoxes(boxes)
           .sort((a, b) => a.y - b.y || a.x - b.x)
-          .slice(0, 40)
+          .slice(0, 160)
           .map((box, index) => ({ id: `v${i}-${index + 1}`, pageNumber: i, box }));
       } catch {
         // Operator lists can fail on damaged PDFs — text extraction still stands.
