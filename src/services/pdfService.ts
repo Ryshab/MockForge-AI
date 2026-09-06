@@ -120,10 +120,7 @@ export const pdfService: IPDFService = {
       const viewport = page.getViewport({ scale: 1 });
       const items: PageTextItem[] = [];
       const textItems: PageTextItem[] = [];
-      const content = await page.getTextContent({
-        disableCombineTextItems: true,
-        normalizeWhitespace: false,
-      });
+      const content = await page.getTextContent({ normalizeWhitespace: false });
       for (const item of content.items) {
         if (!("str" in item) || !item.str.trim()) continue;
         const tx = item.transform as number[];
