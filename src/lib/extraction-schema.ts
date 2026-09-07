@@ -43,6 +43,12 @@ export const mediaSchema = z.object({
   ref: z.string().nullable().default(null),
   /** False when the original visual could not be recovered from the PDF. */
   resolved: z.boolean().default(false),
+  /** Confidence in the visual-to-slot association, separate from question confidence. */
+  associationConfidence: z.number().min(0).max(1).default(0),
+  /** How the association was established, useful during manual review. */
+  associationMethod: z
+    .enum(["inventory", "page-fallback", "question-region", "structured-table", "unresolved"])
+    .default("unresolved"),
 });
 export type ExtractedMedia = z.infer<typeof mediaSchema>;
 

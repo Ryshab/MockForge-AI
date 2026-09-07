@@ -141,7 +141,11 @@ export const pdfService: IPDFService = {
       // columns and option labels in an order that is not human-readable.
       const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
       for (const item of [...textItems].sort((a, b) => a.y - b.y || a.x - b.x)) {
-        const line = lines.find((candidate) => Math.abs(candidate.y - item.y) < 0.009);
+        const line = lines.find(
+          (candidate) =>
+            Math.abs(candidate.y - item.y) < 0.009 &&
+            Math.abs((candidate.parts[0]?.x ?? item.x) - item.x) < 0.32,
+        );
         if (line) line.parts.push({ x: item.x, str: item.str });
         else lines.push({ y: item.y, parts: [{ x: item.x, str: item.str }] });
       }

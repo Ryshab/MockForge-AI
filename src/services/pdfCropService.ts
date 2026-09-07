@@ -13,13 +13,13 @@ const SCALE = 2.2;
 const MAX_EDGE = 1600;
 
 function padBox(box: PageBox): PageBox {
-  const x = Math.max(0, box.x - PAD);
-  const y = Math.max(0, box.y - PAD);
+  const x = Math.min(1, Math.max(0, box.x - PAD));
+  const y = Math.min(1, Math.max(0, box.y - PAD));
   return {
     x,
     y,
-    width: Math.min(1 - x, box.width + PAD * 2),
-    height: Math.min(1 - y, box.height + PAD * 2),
+    width: Math.max(0.001, Math.min(1 - x, box.width + PAD * 2)),
+    height: Math.max(0.001, Math.min(1 - y, box.height + PAD * 2)),
   };
 }
 
@@ -63,10 +63,13 @@ export const pdfCropService: IPdfCropService = {
 
       for (const request of pageRequests) {
         const box = padBox(request.box);
-        const sx = Math.round(box.x * canvas.width);
-        const sy = Math.round(box.y * canvas.height);
-        const sw = Math.max(1, Math.round(box.width * canvas.width));
-        const sh = Math.max(1, Math.round(box.height * canvas.height));
+        const sx = Math.max(0, Math.min(canvas.width - 1, Math.round(box.x * canvas.width)));
+        const sy = Math.max(0, Math.min(canvas.height - 1, Math.round(box.y * canvas.height)));
+        const sw = Math.max(1, Math.min(canvas.width - sx, Math.round(box.width * canvas.width)));
+        const sh = Math.max(
+          1,
+          Math.min(canvas.height - sy, Math.round(box.height * canvas.height)),
+        );
         const shrink = Math.min(1, MAX_EDGE / Math.max(sw, sh));
 
         const crop = document.createElement("canvas");

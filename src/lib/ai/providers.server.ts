@@ -59,6 +59,12 @@ VISUALS (diagrams, figures, charts, tables, equations) — critical
 - Mathematical/chemical expressions stay in the question text as plain text; only use
   "equation" media when the expression is an image in the PDF.
 
+PARTIAL PAGE CHUNKS
+- The selected paper may be supplied in overlapping page chunks. Extract only questions whose
+  question text appears in the ordinary page blocks of this request.
+- A block labelled "Answer-key reference pages" is reference material only: use it to match
+  answers by question number, but never emit duplicate questions from that block.
+
 SHARED CONTENT (passages, case studies, common data)
 - When several questions share a reading passage, case study, instruction block or data table
   ("Directions for questions 96-100", "Read the passage and answer"), store that block ONCE in
@@ -108,7 +114,11 @@ function createGeminiProvider(apiKey: string, model = "gemini-2.5-flash"): AIPro
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: "user", parts: [{ text: userPrompt(request) }] }],
-            generationConfig: { responseMimeType: "application/json", temperature: 0.1 },
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.1,
+              maxOutputTokens: 65536,
+            },
           }),
         },
       );
