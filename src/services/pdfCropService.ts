@@ -66,7 +66,10 @@ export const pdfCropService: IPdfCropService = {
         const sx = Math.max(0, Math.min(canvas.width - 1, Math.round(box.x * canvas.width)));
         const sy = Math.max(0, Math.min(canvas.height - 1, Math.round(box.y * canvas.height)));
         const sw = Math.max(1, Math.min(canvas.width - sx, Math.round(box.width * canvas.width)));
-        const sh = Math.max(1, Math.min(canvas.height - sy, Math.round(box.height * canvas.height)));
+        const sh = Math.max(
+          1,
+          Math.min(canvas.height - sy, Math.round(box.height * canvas.height)),
+        );
         const shrink = Math.min(1, MAX_EDGE / Math.max(sw, sh));
 
         const crop = document.createElement("canvas");

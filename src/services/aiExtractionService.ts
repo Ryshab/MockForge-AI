@@ -32,14 +32,17 @@ function pageBlocks(paperText: string): string[] {
 
 function buildChunks(paperText: string): string[] {
   const blocks = pageBlocks(paperText);
-  if (blocks.length === 1 && blocks[0]!.length <= CHUNK_LIMIT) return blocks;
+  if (blocks.length === 1 && (blocks[0]?.length ?? 0) <= CHUNK_LIMIT) return blocks;
 
   const chunks: string[] = [];
   let start = 0;
   while (start < blocks.length) {
     let end = start;
     let size = 0;
-    while (end < blocks.length && (end === start || size + blocks[end]!.length + 2 <= CHUNK_LIMIT)) {
+    while (
+      end < blocks.length &&
+      (end === start || size + (blocks[end]?.length ?? 0) + 2 <= CHUNK_LIMIT)
+    ) {
       size += blocks[end]!.length + 2;
       end += 1;
     }
@@ -96,8 +99,11 @@ function mergeExams(exams: ExtractedExam[]): ExtractedExam {
       if (existingIndex === undefined) {
         byText.set(key, questions.length);
         questions.push(question);
-      } else if (richness(question) > richness(questions[existingIndex]!)) {
-        questions[existingIndex] = question;
+      } else {
+        const existing = questions[existingIndex];
+        if (existing && richness(question) > richness(existing)) {
+          questions[existingIndex] = question;
+        }
       }
     }
   }
