@@ -164,7 +164,9 @@ export const aiExtractionService: IAIExtractionService = {
         result = validationService.parse(raw, { allowEmptyQuestions: true });
       }
       if (!result.ok) {
-        throw new Error(`We couldn't read this page group (${result.error}). Try a different page range.`);
+        throw new Error(
+          `We couldn't read this page group (${result.error}). Try a different page range.`,
+        );
       }
       exams.push(result.exam);
     }
