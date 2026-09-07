@@ -10,8 +10,8 @@ import {
 export type ValidationResult = { ok: true; exam: ExtractedExam } | { ok: false; error: string };
 
 export interface IValidationService {
-  parse(raw: string): ValidationResult;
-  validateExam(exam: unknown): ValidationResult;
+  parse(raw: string, options?: { allowEmptyQuestions?: boolean }): ValidationResult;
+  validateExam(exam: unknown, options?: { allowEmptyQuestions?: boolean }): ValidationResult;
 }
 
 function stripFences(raw: string) {
@@ -191,17 +191,17 @@ function normalize(exam: ExtractedExam): ExtractedExam {
 }
 
 export const validationService: IValidationService = {
-  parse(raw) {
+  parse(raw, options) {
     let json: unknown;
     try {
       json = JSON.parse(stripFences(raw));
     } catch {
       return { ok: false, error: "The AI response wasn't valid JSON." };
     }
-    return validationService.validateExam(json);
+    return validationService.validateExam(json, options);
   },
 
-  validateExam(exam) {
+  validateExam(exam, options) {
     const result = extractedExamSchema.safeParse(coerceLegacy(exam));
     if (!result.success) {
       const issue = result.error.issues[0];
@@ -210,7 +210,7 @@ export const validationService: IValidationService = {
         error: issue ? `${issue.path.join(".") || "root"}: ${issue.message}` : "Invalid exam JSON.",
       };
     }
-    if (result.data.questions.length === 0) {
+    if (!options?.allowEmptyQuestions && result.data.questions.length === 0) {
       return { ok: false, error: "No multiple-choice questions were found in the selected pages." };
     }
     return { ok: true, exam: normalize(result.data) };

@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const MAX_PAPER_CHARS = 120_000;
+// The client sends page-bounded chunks. Keep a server guard without silently
+// chopping a selected paper in the middle of a question.
+const MAX_PAPER_CHARS = 90_000;
 
 const inputSchema = z.object({
   paperTitle: z.string().min(1),
