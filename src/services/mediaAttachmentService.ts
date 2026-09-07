@@ -40,6 +40,12 @@ function questionBand(page: PdfPage, question: string, nextQuestion?: string): P
   if (startIndex < 0) return null;
 
   const startY = Math.max(0, sorted[startIndex]!.y - 0.005);
+  const startX = sorted[startIndex]!.x;
+  const leftItems = sorted.filter((item) => item.x < 0.48).length;
+  const rightItems = sorted.filter((item) => item.x > 0.52).length;
+  const twoColumns = leftItems >= 6 && rightItems >= 6;
+  const columnLeft = twoColumns && startX > 0.48 ? 0.52 : 0.03;
+  const columnRight = twoColumns && startX > 0.48 ? 0.97 : twoColumns ? 0.47 : 0.97;
   let endY = 0.98;
   const nextNeedle = nextQuestion ? normalize(nextQuestion).slice(0, 24) : "";
   if (nextNeedle.length >= 8) {
@@ -52,7 +58,7 @@ function questionBand(page: PdfPage, question: string, nextQuestion?: string): P
   }
   const height = Math.min(1 - startY, endY - startY);
   if (height < 0.04) return null;
-  return { x: 0.03, y: startY, width: 0.94, height };
+  return { x: columnLeft, y: startY, width: columnRight - columnLeft, height };
 }
 
 function findVisualBox(
@@ -122,6 +128,8 @@ export const mediaAttachmentService: IMediaAttachmentService = {
       // A fully reconstructed table needs no picture of itself.
       if (media.type === "table" && media.table && media.table.rows.length > 0) {
         media.resolved = true;
+        media.associationConfidence = 1;
+        media.associationMethod = "structured-table";
         return;
       }
 
@@ -131,6 +139,10 @@ export const mediaAttachmentService: IMediaAttachmentService = {
         located?.page ?? refPage(media.ref) ?? media.sourcePage ?? question?.sourcePage ?? null;
 
       let box = located?.box ?? null;
+      if (located) {
+        media.associationConfidence = 0.98;
+        media.associationMethod = "inventory";
+      }
       if (!box && pageNumber) {
         const page = doc.pages.find((p) => p.pageNumber === pageNumber);
         if (page) {
@@ -149,10 +161,14 @@ export const mediaAttachmentService: IMediaAttachmentService = {
             );
             if (candidate) {
               box = candidate.box;
+              media.associationConfidence = 0.62;
+              media.associationMethod = "page-fallback";
               claimed.add(candidate.id);
               fallbackClaims.set(pageNumber, claimed);
             } else if (band) {
               box = band;
+              media.associationConfidence = 0.42;
+              media.associationMethod = "question-region";
             }
           }
         }
@@ -163,6 +179,7 @@ export const mediaAttachmentService: IMediaAttachmentService = {
         media.sourceRegion = box;
         requests.push({ key, pageNumber, box });
       } else {
+        media.associationMethod = "unresolved";
         unresolved.push(slot);
       }
     });
