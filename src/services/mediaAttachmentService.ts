@@ -75,6 +75,14 @@ function refPage(ref: string | null): number | null {
   return inventory ? Number(inventory[1]) : null;
 }
 
+function isInventoryRef(ref: string | null): boolean {
+  return Boolean(ref && /^v\d+-\d+$/i.test(ref.trim()));
+}
+
+function intersectsVertically(a: PageBox, b: PageBox): boolean {
+  return a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
 interface Slot {
   media: ExtractedMedia;
   question: ExtractedQuestion | null;
@@ -107,6 +115,7 @@ export const mediaAttachmentService: IMediaAttachmentService = {
 
     const requests: CropRequest[] = [];
     const unresolved: Slot[] = [];
+    const fallbackClaims = new Map<number, Set<string>>();
 
     slots.forEach((slot, index) => {
       const { media, question } = slot;
@@ -125,16 +134,26 @@ export const mediaAttachmentService: IMediaAttachmentService = {
       if (!box && pageNumber) {
         const page = doc.pages.find((p) => p.pageNumber === pageNumber);
         if (page) {
-          // Prefer a detected bitmap on that page that nothing else claimed.
-          const claimed = new Set(
-            slots.map((s) => s.media.ref?.toLowerCase()).filter(Boolean) as string[],
-          );
-          const free = page.visuals.find((v) => !claimed.has(v.id.toLowerCase()));
-          if (free) box = free.box;
-          else if (question) {
+          // An explicit inventory id must never silently become a different image.
+          // For page-only or missing refs, infer from the question's vertical band.
+          if (!isInventoryRef(media.ref)) {
             const siblings = exam.questions.filter((q) => q.sourcePage === pageNumber);
-            const at = siblings.findIndex((q) => q.id === question.id);
-            box = questionBand(page, question.question, siblings[at + 1]?.question);
+            const at = question ? siblings.findIndex((q) => q.id === question.id) : -1;
+            const band = question
+              ? questionBand(page, question.question, siblings[at + 1]?.question)
+              : null;
+            const claimed = fallbackClaims.get(pageNumber) ?? new Set<string>();
+            const candidate = page.visuals.find(
+              (visual) =>
+                !claimed.has(visual.id) && (!band || intersectsVertically(visual.box, band)),
+            );
+            if (candidate) {
+              box = candidate.box;
+              claimed.add(candidate.id);
+              fallbackClaims.set(pageNumber, claimed);
+            } else if (band) {
+              box = band;
+            }
           }
         }
       }
