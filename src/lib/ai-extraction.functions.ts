@@ -16,7 +16,9 @@ export const extractQuestionsFromPaper = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
     if (data.paperText.length > MAX_PAPER_CHARS) {
-      throw new Error("This page group is too large to process safely. Please use a smaller range.");
+      throw new Error(
+        "This page group is too large to process safely. Please use a smaller range.",
+      );
     }
     const { getAIProvider } = await import("./ai/providers.server");
     const provider = getAIProvider();
