@@ -52,6 +52,15 @@ export const mediaSchema = z.object({
 });
 export type ExtractedMedia = z.infer<typeof mediaSchema>;
 
+/** A complete, source-PDF region for questions where reconstructing visuals is unsafe. */
+export const questionSnapshotSchema = z.object({
+  type: z.literal("question-snapshot"),
+  assets: z.array(mediaSchema).default([]),
+  confidence: z.number().min(0).max(1).default(0),
+  warning: z.string().nullable().default(null),
+});
+export type QuestionSnapshot = z.infer<typeof questionSnapshotSchema>;
+
 export const contextTypeSchema = z.enum([
   "passage",
   "case-study",
@@ -94,6 +103,8 @@ export const extractedQuestionSchema = z.object({
   media: z.array(mediaSchema).default([]),
   /** Set when visual content was expected but could not be preserved. */
   mediaWarning: z.string().nullable().default(null),
+  /** Optional and additive so older exported exams remain valid. */
+  visualSnapshot: questionSnapshotSchema.nullable().default(null),
 });
 
 export const extractedExamSchema = z.object({
@@ -151,6 +162,7 @@ export const EXTRACTION_JSON_CONTRACT = `{
       "sourcePage": number | null (the "--- Page N ---" marker the question came from),
       "contextIds": string[] (ids from "contexts"; [] when the question is self-contained),
       "media": [ MEDIA ]
+      ,"visualSnapshot": { "type": "question-snapshot", "assets": [ MEDIA ] } | null
     }
   ]
 }

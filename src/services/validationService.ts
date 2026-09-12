@@ -118,6 +118,16 @@ function coerceLegacy(input: unknown): unknown {
         ? q["contextIds"].filter((id): id is string => typeof id === "string")
         : [];
       if (typeof q["mediaWarning"] !== "string") q["mediaWarning"] = null;
+      if (q["visualSnapshot"] && typeof q["visualSnapshot"] === "object") {
+        const snapshot = { ...(q["visualSnapshot"] as Record<string, unknown>) };
+        snapshot["type"] = "question-snapshot";
+        snapshot["assets"] = coerceMediaList(snapshot["assets"]);
+        if (typeof snapshot["confidence"] !== "number") snapshot["confidence"] = 0;
+        if (typeof snapshot["warning"] !== "string") snapshot["warning"] = null;
+        q["visualSnapshot"] = snapshot;
+      } else {
+        q["visualSnapshot"] = null;
+      }
       q["options"] = normalizedOptions;
       return q;
     });
@@ -168,6 +178,12 @@ function normalize(exam: ExtractedExam): ExtractedExam {
       sourcePage: q.sourcePage && q.sourcePage > 0 ? q.sourcePage : null,
       media: withMediaIds(q.media),
       contextIds: q.contextIds.filter((cid) => contextIds.has(cid)),
+      visualSnapshot: q.visualSnapshot
+        ? {
+            ...q.visualSnapshot,
+            assets: withMediaIds(q.visualSnapshot.assets),
+          }
+        : null,
     };
   });
 

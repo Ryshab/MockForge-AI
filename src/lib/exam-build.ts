@@ -25,6 +25,7 @@ function toQuestion(
     media: q.media,
     contextIds: q.contextIds,
     mediaWarning: q.mediaWarning,
+    visualSnapshot: q.visualSnapshot,
   };
   return q.sourcePage === null ? base : { ...base, sourcePage: q.sourcePage };
 }
@@ -37,12 +38,39 @@ export function buildAttemptExam(
   extracted: ExtractedExam,
   configuration: ExamConfiguration,
   configSections: Section[],
+  options?: { flatQuestionCount?: number; flatSectionName?: string; durationMinutes?: number },
 ): AttemptExam {
   // An image-only question still has content, so visuals count as substance too.
   const pool = extracted.questions.filter(
     (q) => q.question.trim().length > 0 || q.media.length > 0,
   );
   if (pool.length === 0) throw new Error("This exam has no questions to attempt.");
+
+  if (options?.flatQuestionCount) {
+    const items = pool.slice(0, Math.max(1, Math.min(options.flatQuestionCount, pool.length)));
+    const id = `sec-${rid().slice(0, 8)}`;
+    const questions: Record<string, Question> = {};
+    items.forEach((q, i) => {
+      questions[q.id] = toQuestion(q, id, i);
+    });
+    const marksPerQuestion = configuration.marksPerQuestion || extracted.marksPerQuestion || 1;
+    return {
+      id: `exam-${rid().slice(0, 8)}`,
+      name: configuration.examName?.trim() || extracted.title || "Practice Set",
+      totalMarks: Math.round(items.length * marksPerQuestion),
+      marksPerQuestion,
+      negativeMarks: configuration.enableNegativeMarking ? configuration.negativeMarks : 0,
+      enableNegativeMarking: configuration.enableNegativeMarking,
+      sections: [{
+        id,
+        name: options.flatSectionName?.trim() || "Practice Set",
+        durationMinutes: Math.max(1, Math.round(options.durationMinutes ?? 20)),
+        questionIds: items.map((q) => q.id),
+      }],
+      questions,
+      contexts: Object.fromEntries(extracted.contexts.map((c) => [c.id, c])),
+    };
+  }
 
   const used = new Set<string>();
   const ordered = [...configSections].sort((a, b) => a.order - b.order);
