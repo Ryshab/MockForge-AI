@@ -1,6 +1,8 @@
 import type { ExtractedContext, ExtractedMedia } from "@/lib/extraction-schema";
 
 export type QuestionType = "mcq" | "multiple" | "numeric";
+export type AttemptMode = "mock" | "practice";
+export type PracticeTimingMode = "none" | "stopwatch" | "countdown";
 
 export interface QuestionOption {
   id: string;
@@ -26,6 +28,7 @@ export interface Question {
   /** Ids into AttemptExam.contexts — shared passages / data the question needs. */
   contextIds: string[];
   mediaWarning?: string | null;
+  visualSnapshot?: import("@/lib/extraction-schema").QuestionSnapshot | null;
 }
 
 export interface Section {
@@ -153,6 +156,8 @@ export interface AttemptSettings {
   allowReviewMode: boolean;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
+  practiceTiming?: PracticeTimingMode;
+  practiceDurationSeconds?: number | null;
 }
 
 export type AttemptStatus = "not-started" | "in-progress" | "completed";
@@ -173,6 +178,9 @@ export interface ExamAttempt {
   completedSections: string[];
   sectionTiming: Record<string, SectionTiming>;
   settings: AttemptSettings;
+  mode: AttemptMode;
+  practiceTiming?: PracticeTimingMode;
+  practiceDurationSeconds?: number | null;
   /** sectionId -> ordered question ids for this attempt */
   questionOrder: Record<string, string[]>;
   /** questionId -> ordered option ids for this attempt */
