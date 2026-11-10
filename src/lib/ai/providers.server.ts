@@ -87,26 +87,88 @@ function userPrompt({ paperTitle, paperText, repair }: ExtractionRequest) {
   return `${base}\n\nYour previous response was rejected by schema validation with this error:\n${repair.error}\n\nPrevious response:\n${repair.previous.slice(0, 4000)}\n\nReturn a corrected JSON object that matches the contract exactly.`;
 }
 
-function mapHttpError(status: number, body: string): Error {
-  if (status === 400 && /api[_ ]?key/i.test(body))
-    return new Error("The AI API key looks invalid. Please check the configured GEMINI_API_KEY.");
-  if (status === 401 || status === 403)
-    return new Error("The AI API key was rejected. Please check the configured GEMINI_API_KEY.");
-  if (status === 429)
-    return new Error("The AI service is rate limited right now. Please retry in a moment.");
-  if (status === 402)
-    return new Error("AI credits are exhausted. Add credits to continue extracting.");
-  if (status >= 500)
-    return new Error("The AI service is temporarily unavailable. Please try again.");
-  return new Error(`The AI request failed (${status}). ${body.slice(0, 300)}`);
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const RETRY_DELAYS_MS = [2_000, 4_000, 8_000] as const;
+
+class ProviderHttpError extends Error {
+  constructor(
+    readonly providerName: string,
+    readonly status: number,
+    readonly retryAfterMs?: number,
+    readonly invalidCredential = false,
+  ) {
+    super(`AI provider returned HTTP ${status}.`);
+    this.name = "ProviderHttpError";
+  }
+}
+
+function retryAfterDelay(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
+  const date = Date.parse(value);
+  return Number.isNaN(date) ? undefined : Math.max(0, date - Date.now());
+}
+
+function failureReason(status: number): string {
+  if (status === 401 || status === 403) return "provider authentication or access was rejected";
+  if (status === 400) return "provider rejected the request";
+  if (status === 429) return "provider rate limit reached";
+  if (RETRYABLE_STATUSES.has(status)) return "temporary provider failure";
+  return "provider request failed";
+}
+
+function logProviderFailure(providerName: string, status: number | "unknown") {
+  // Never log response bodies, prompts, credentials, or request headers.
+  console.warn("[ai-provider] request failed", {
+    provider: providerName,
+    status,
+    reason: status === "unknown" ? "request failed before a response" : failureReason(status),
+  });
+}
+
+function logHttpFailure(error: ProviderHttpError) {
+  logProviderFailure(error.providerName, error.status);
+}
+
+function isTemporaryFailure(error: unknown): error is ProviderHttpError {
+  return error instanceof ProviderHttpError && RETRYABLE_STATUSES.has(error.status);
+}
+
+function toUserError(error: unknown): Error {
+  if (!(error instanceof ProviderHttpError)) {
+    return error instanceof Error
+      ? new Error(error.message || "The AI request could not be completed. Please try again.")
+      : new Error("The AI request could not be completed. Please try again.");
+  }
+  if (error.status === 401 || error.status === 403) {
+    return new Error(
+      error.providerName.startsWith("gemini:")
+        ? "Gemini could not authorize the request. Please check the server's Gemini configuration."
+        : "The AI service could not authorize the request. Please check the server configuration.",
+    );
+  }
+  if (error.invalidCredential) {
+    return new Error("Gemini could not authorize the request. Please check the server's Gemini configuration.");
+  }
+  if (error.status === 402) return new Error("AI credits are exhausted. Add credits to continue extracting.");
+  if (isTemporaryFailure(error)) {
+    return new Error("The AI service is temporarily unavailable. Please try again in a moment.");
+  }
+  return new Error(`The AI request could not be completed (HTTP ${error.status}). Please try again.`);
 }
 
 /** Official Google Gemini API (server-side only). */
-function createGeminiProvider(apiKey: string, model = "gemini-2.5-flash"): AIProvider {
+function createGeminiProvider(
+  apiKey: string,
+  model = "gemini-2.5-flash",
+  fetcher: typeof fetch = fetch,
+): AIProvider {
+  const name = `gemini:${model}`;
   return {
-    name: `gemini:${model}`,
+    name,
     async extract(request) {
-      const response = await fetch(
+      const response = await fetcher(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: "POST",
@@ -124,7 +186,13 @@ function createGeminiProvider(apiKey: string, model = "gemini-2.5-flash"): AIPro
       );
 
       if (!response.ok) {
-        throw mapHttpError(response.status, await response.text().catch(() => ""));
+        const body = await response.text().catch(() => "");
+        throw new ProviderHttpError(
+          name,
+          response.status,
+          retryAfterDelay(response.headers.get("Retry-After")),
+          response.status === 400 && /api[_ ]?key|invalid[_ ]?key|api key not valid/i.test(body),
+        );
       }
 
       const payload = (await response.json()) as {
@@ -140,11 +208,16 @@ function createGeminiProvider(apiKey: string, model = "gemini-2.5-flash"): AIPro
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 /** Fallback: Gemini through the Lovable AI Gateway when no GEMINI_API_KEY is configured. */
-function createGatewayProvider(apiKey: string, model = "google/gemini-3.6-flash"): AIProvider {
+function createGatewayProvider(
+  apiKey: string,
+  model = "google/gemini-3.6-flash",
+  fetcher: typeof fetch = fetch,
+): AIProvider {
+  const name = `lovable-gateway:${model}`;
   return {
-    name: `lovable-gateway:${model}`,
+    name,
     async extract(request) {
-      const response = await fetch(GATEWAY_URL, {
+      const response = await fetcher(GATEWAY_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,9 +235,14 @@ function createGatewayProvider(apiKey: string, model = "google/gemini-3.6-flash"
         }),
       });
 
-      if (!response.ok || !response.body) {
-        throw mapHttpError(response.status, await response.text().catch(() => ""));
+      if (!response.ok) {
+        throw new ProviderHttpError(
+          name,
+          response.status,
+          retryAfterDelay(response.headers.get("Retry-After")),
+        );
       }
+      if (!response.body) throw new Error("The AI provider returned no response stream.");
 
       // Stream so long extractions keep bytes flowing past platform timeouts.
       const reader = response.body.getReader();
@@ -204,8 +282,78 @@ function createGatewayProvider(apiKey: string, model = "google/gemini-3.6-flash"
  */
 export function getAIProvider(): AIProvider {
   const geminiKey = process.env["GEMINI_API_KEY"];
-  if (geminiKey) return createGeminiProvider(geminiKey);
   const lovableKey = process.env["LOVABLE_API_KEY"];
-  if (lovableKey) return createGatewayProvider(lovableKey);
-  throw new Error("AI is not configured on the server. Add a GEMINI_API_KEY to enable extraction.");
+  return createAIProviderFromConfig({ geminiApiKey: geminiKey, lovableApiKey: lovableKey });
+}
+
+interface ProviderConfig {
+  geminiApiKey?: string;
+  lovableApiKey?: string;
+  /** Injectable only to make provider behavior deterministic in tests. */
+  fetcher?: typeof fetch;
+  wait?: (milliseconds: number) => Promise<void>;
+}
+
+async function waitForRetry(milliseconds: number) {
+  await new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function extractWithRetries(
+  provider: AIProvider,
+  request: ExtractionRequest,
+  wait: (milliseconds: number) => Promise<void>,
+): Promise<string> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await provider.extract(request);
+    } catch (error) {
+      if (error instanceof ProviderHttpError) logHttpFailure(error);
+      else logProviderFailure(provider.name, "unknown");
+
+      if (!isTemporaryFailure(error) || attempt >= RETRY_DELAYS_MS.length) throw error;
+      const baseDelay = RETRY_DELAYS_MS[attempt];
+      await wait(Math.max(baseDelay, error.retryAfterMs ?? 0));
+    }
+  }
+}
+
+/**
+ * Creates the current provider chain. Gemini remains primary; the gateway is
+ * used only after Gemini exhausts transient retries. Without a Gemini key,
+ * existing gateway-only configuration continues to work as before.
+ */
+export function createAIProviderFromConfig(config: ProviderConfig): AIProvider {
+  const fetcher = config.fetcher ?? fetch;
+  const gemini = config.geminiApiKey
+    ? createGeminiProvider(config.geminiApiKey, undefined, fetcher)
+    : undefined;
+  const gateway = config.lovableApiKey
+    ? createGatewayProvider(config.lovableApiKey, undefined, fetcher)
+    : undefined;
+  const primary = gemini ?? gateway;
+  if (!primary) {
+    throw new Error("AI is not configured on the server. Add a GEMINI_API_KEY to enable extraction.");
+  }
+  const fallback = gemini ? gateway : undefined;
+  const wait = config.wait ?? waitForRetry;
+
+  return {
+    name: primary.name,
+    async extract(request) {
+      try {
+        return await extractWithRetries(primary, request, wait);
+      } catch (primaryError) {
+        if (!fallback || !isTemporaryFailure(primaryError)) throw toUserError(primaryError);
+        try {
+          return await extractWithRetries(fallback, request, wait);
+        } catch (fallbackError) {
+          if (fallbackError instanceof ProviderHttpError) logHttpFailure(fallbackError);
+          else logProviderFailure(fallback.name, "unknown");
+          throw new Error(
+            "The AI services could not complete this extraction. Your PDF is unchanged; please try again shortly.",
+          );
+        }
+      }
+    },
+  };
 }
