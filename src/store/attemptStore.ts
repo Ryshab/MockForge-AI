@@ -60,6 +60,7 @@ export const useAttemptStore = create<AttemptState>()(
         const attempt: ExamAttempt = {
           attemptId,
           examId: exam.id,
+          mode: "mock",
           startedAt: Date.now(),
           completedAt: null,
           status: "not-started",

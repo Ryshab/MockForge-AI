@@ -137,6 +137,7 @@ export const useExtractionStore = create<ExtractionState>()(
                 contextIds: [],
                 media: [],
                 mediaWarning: null,
+                visualSnapshot: null,
               },
             ],
           },
