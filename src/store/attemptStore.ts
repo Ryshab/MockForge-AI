@@ -12,6 +12,7 @@ const rid = () =>
 interface AttemptState {
   exam: AttemptExam | null;
   attempt: ExamAttempt | null;
+  latestCompleted: { exam: AttemptExam; attempt: ExamAttempt } | null;
   createAttempt: (
     extracted: ExtractedExam,
     configuration: ExamConfiguration,
@@ -40,6 +41,7 @@ export const useAttemptStore = create<AttemptState>()(
     (set, get) => ({
       exam: null,
       attempt: null,
+      latestCompleted: null,
 
       createAttempt: (extracted, configuration, sections) => {
         const exam = buildAttemptExam(extracted, configuration, sections);
@@ -200,25 +202,25 @@ export const useAttemptStore = create<AttemptState>()(
           : [...attempt.completedSections, section.id];
         const isLast = attempt.currentSectionIndex >= exam.sections.length - 1;
         const timing = attempt.sectionTiming[section.id];
-        set({
-          attempt: {
-            ...attempt,
-            completedSections,
-            sectionTiming: {
-              ...attempt.sectionTiming,
-              [section.id]: {
-                startedAt: timing?.startedAt ?? now,
-                endsAt: timing?.endsAt ?? now,
-                completedAt: now,
-              },
+        const completedAttempt: ExamAttempt = {
+          ...attempt,
+          completedSections,
+          sectionTiming: {
+            ...attempt.sectionTiming,
+            [section.id]: {
+              startedAt: timing?.startedAt ?? now,
+              endsAt: timing?.endsAt ?? now,
+              completedAt: now,
             },
-            status: isLast ? "completed" : "in-progress",
-            completedAt: isLast ? now : null,
-            currentSectionIndex: isLast
-              ? attempt.currentSectionIndex
-              : attempt.currentSectionIndex + 1,
-            currentQuestionIndex: 0,
           },
+          status: isLast ? "completed" : "in-progress",
+          completedAt: isLast ? now : null,
+          currentSectionIndex: isLast ? attempt.currentSectionIndex : attempt.currentSectionIndex + 1,
+          currentQuestionIndex: 0,
+        };
+        set({
+          attempt: completedAttempt,
+          ...(isLast ? { latestCompleted: { exam, attempt: completedAttempt } } : {}),
         });
       },
 

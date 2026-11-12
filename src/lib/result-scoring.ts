@@ -54,7 +54,12 @@ export function calculateAttemptResult(
   const sections: ScoredSection[] = [];
 
   for (const section of exam.sections) {
-    const orderedIds = attempt.questionOrder[section.id] ?? section.questionIds;
+    // Results are presented in the source exam's order, not the attempt's optional shuffle order.
+    const orderedIds = [...section.questionIds].sort((left, right) => {
+      const leftIndex = exam.questions[left]?.index ?? Number.MAX_SAFE_INTEGER;
+      const rightIndex = exam.questions[right]?.index ?? Number.MAX_SAFE_INTEGER;
+      return leftIndex - rightIndex;
+    });
     const sectionStart = questions.length;
     let sectionScore = 0;
     let sectionMaximum = 0;

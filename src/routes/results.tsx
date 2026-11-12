@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Trophy } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
-import { ComingSoon } from "@/components/layout/ComingSoon";
+import { ResultsPage } from "@/features/results/ResultsPage";
 
 export const Route = createFileRoute("/results")({
   head: () => ({
@@ -9,20 +8,29 @@ export const Route = createFileRoute("/results")({
       { title: "Results — MockForge AI" },
       {
         name: "description",
-        content:
-          "Scorecards, accuracy and section-wise analysis arrive once the exam engine ships.",
+        content: "Review your completed mock test or practice set, score, answers, and section timing.",
       },
       { property: "og:title", content: "Results — MockForge AI" },
-      { property: "og:description", content: "Scorecards and section analysis, coming soon." },
+      {
+        property: "og:description",
+        content: "Review your completed test score, question answers, and section timing.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Results — MockForge AI" },
+      {
+        name: "twitter:description",
+        content: "Review your completed test score, question answers, and section timing.",
+      },
     ],
   }),
-  component: () => (
-    <PageShell title="Results" description="Scoring is disabled in this foundation release.">
-      <ComingSoon
-        icon={Trophy}
-        title="Scorecards coming soon"
-        description="Score, accuracy, attempt rate and section-wise breakdowns will be computed from your marking scheme."
-      />
-    </PageShell>
-  ),
+  component: ResultsRoute,
 });
+
+function ResultsRoute() {
+  return (
+    <PageShell title="Results" description="Your completed exam performance and answer review.">
+      <ResultsPage />
+    </PageShell>
+  );
+}
