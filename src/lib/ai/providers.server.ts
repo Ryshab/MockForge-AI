@@ -141,6 +141,11 @@ function toUserError(error: unknown): Error {
       ? new Error(error.message || "The AI request could not be completed. Please try again.")
       : new Error("The AI request could not be completed. Please try again.");
   }
+  if (error.invalidCredential) {
+    return new Error(
+      "Gemini could not authorize the request. Please check the server's Gemini configuration.",
+    );
+  }
   if (error.status === 401 || error.status === 403) {
     return new Error(
       error.providerName.startsWith("gemini:")
@@ -148,14 +153,14 @@ function toUserError(error: unknown): Error {
         : "The AI service could not authorize the request. Please check the server configuration.",
     );
   }
-  if (error.invalidCredential) {
-    return new Error("Gemini could not authorize the request. Please check the server's Gemini configuration.");
-  }
-  if (error.status === 402) return new Error("AI credits are exhausted. Add credits to continue extracting.");
-  if (isTemporaryFailure(error)) {
+  if (error.status === 402)
+    return new Error("AI credits are exhausted. Add credits to continue extracting.");
+  if (RETRYABLE_STATUSES.has(error.status)) {
     return new Error("The AI service is temporarily unavailable. Please try again in a moment.");
   }
-  return new Error(`The AI request could not be completed (HTTP ${error.status}). Please try again.`);
+  return new Error(
+    `The AI request could not be completed (HTTP ${error.status}). Please try again.`,
+  );
 }
 
 /** Official Google Gemini API (server-side only). */
@@ -283,7 +288,10 @@ function createGatewayProvider(
 export function getAIProvider(): AIProvider {
   const geminiKey = process.env["GEMINI_API_KEY"];
   const lovableKey = process.env["LOVABLE_API_KEY"];
-  return createAIProviderFromConfig({ geminiApiKey: geminiKey, lovableApiKey: lovableKey });
+  return createAIProviderFromConfig({
+    ...(geminiKey ? { geminiApiKey: geminiKey } : {}),
+    ...(lovableKey ? { lovableApiKey: lovableKey } : {}),
+  });
 }
 
 interface ProviderConfig {
@@ -312,6 +320,7 @@ async function extractWithRetries(
 
       if (!isTemporaryFailure(error) || attempt >= RETRY_DELAYS_MS.length) throw error;
       const baseDelay = RETRY_DELAYS_MS[attempt];
+      if (baseDelay === undefined) throw error;
       await wait(Math.max(baseDelay, error.retryAfterMs ?? 0));
     }
   }
@@ -332,7 +341,9 @@ export function createAIProviderFromConfig(config: ProviderConfig): AIProvider {
     : undefined;
   const primary = gemini ?? gateway;
   if (!primary) {
-    throw new Error("AI is not configured on the server. Add a GEMINI_API_KEY to enable extraction.");
+    throw new Error(
+      "AI is not configured on the server. Add a GEMINI_API_KEY to enable extraction.",
+    );
   }
   const fallback = gemini ? gateway : undefined;
   const wait = config.wait ?? waitForRetry;

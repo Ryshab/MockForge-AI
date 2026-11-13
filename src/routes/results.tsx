@@ -8,7 +8,8 @@ export const Route = createFileRoute("/results")({
       { title: "Results — MockForge AI" },
       {
         name: "description",
-        content: "Review your completed mock test or practice set, score, answers, and section timing.",
+        content:
+          "Review your completed mock test or practice set, score, answers, and section timing.",
       },
       { property: "og:title", content: "Results — MockForge AI" },
       {

@@ -46,10 +46,7 @@ function questionMarks(question: Question, exam: AttemptExam) {
 }
 
 /** Scores the immutable exam against the saved answers without mutating either. */
-export function calculateAttemptResult(
-  exam: AttemptExam,
-  attempt: ExamAttempt,
-): AttemptResult {
+export function calculateAttemptResult(exam: AttemptExam, attempt: ExamAttempt): AttemptResult {
   const questions: ScoredQuestion[] = [];
   const sections: ScoredSection[] = [];
 

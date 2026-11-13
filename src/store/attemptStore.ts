@@ -208,14 +208,16 @@ export const useAttemptStore = create<AttemptState>()(
           sectionTiming: {
             ...attempt.sectionTiming,
             [section.id]: {
-              startedAt: timing?.startedAt ?? now,
-              endsAt: timing?.endsAt ?? now,
+              startedAt: timing?.startedAt ?? null,
+              endsAt: timing?.endsAt ?? null,
               completedAt: now,
             },
           },
           status: isLast ? "completed" : "in-progress",
           completedAt: isLast ? now : null,
-          currentSectionIndex: isLast ? attempt.currentSectionIndex : attempt.currentSectionIndex + 1,
+          currentSectionIndex: isLast
+            ? attempt.currentSectionIndex
+            : attempt.currentSectionIndex + 1,
           currentQuestionIndex: 0,
         };
         set({

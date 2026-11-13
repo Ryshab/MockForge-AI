@@ -61,12 +61,14 @@ export function buildAttemptExam(
       marksPerQuestion,
       negativeMarks: configuration.enableNegativeMarking ? configuration.negativeMarks : 0,
       enableNegativeMarking: configuration.enableNegativeMarking,
-      sections: [{
-        id,
-        name: options.flatSectionName?.trim() || "Practice Set",
-        durationMinutes: Math.max(1, Math.round(options.durationMinutes ?? 20)),
-        questionIds: items.map((q) => q.id),
-      }],
+      sections: [
+        {
+          id,
+          name: options.flatSectionName?.trim() || "Practice Set",
+          durationMinutes: Math.max(1, Math.round(options.durationMinutes ?? 20)),
+          questionIds: items.map((q) => q.id),
+        },
+      ],
       questions,
       contexts: Object.fromEntries(extracted.contexts.map((c) => [c.id, c])),
     };
