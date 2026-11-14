@@ -49,6 +49,7 @@ const FILTERS: { value: ResultFilter; label: string }[] = [
   { value: "correct", label: "Correct" },
   { value: "incorrect", label: "Incorrect" },
   { value: "unattempted", label: "Unattempted" },
+  { value: "ungraded", label: "Answer unavailable" },
 ];
 
 function formatNumber(value: number) {
@@ -99,18 +100,14 @@ function calculateAttemptTiming(
       },
     ];
   });
-  const sectionStartTimes = Object.values(attempt.sectionTiming)
-    .map((section) => section.startedAt)
-    .filter((startedAt): startedAt is number => startedAt !== null);
-  if (
-    sectionTimes.length === 0 &&
-    (attempt.mode !== "practice" || !attempt.completedAt || sectionStartTimes.length === 0)
-  ) {
+  if (sectionTimes.length === 0 && (attempt.mode !== "practice" || !attempt.completedAt)) {
     return null;
   }
   const actualSeconds =
-    attempt.mode === "practice" && attempt.completedAt && sectionStartTimes.length > 0
-      ? Math.max(0, Math.floor((attempt.completedAt - Math.min(...sectionStartTimes)) / 1000))
+    attempt.mode === "practice" && attempt.completedAt
+      ? sectionTimes.length > 0
+        ? sectionTimes.reduce((sum, section) => sum + section.elapsed, 0)
+        : Math.max(0, Math.floor((attempt.completedAt - attempt.startedAt) / 1000))
       : sectionTimes.reduce((sum, section) => sum + section.elapsed, 0);
   const allottedSeconds = exam.sections.reduce(
     (sum, section) => sum + section.durationMinutes * 60,
@@ -171,11 +168,14 @@ export function ResultsPage() {
     correct: result.correct,
     incorrect: result.incorrect,
     unattempted: result.unattempted,
+    ungraded: result.ungraded,
   };
   const questions = result.questions.filter((item) => filter === "all" || item.status === filter);
 
   const scrollToQuestion = (questionId: string) => {
-    document.getElementById(`result-question-${questionId}`)?.scrollIntoView({
+    const element = document.getElementById(`result-question-${questionId}`);
+    if (element instanceof HTMLDetailsElement) element.open = true;
+    element?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -401,7 +401,7 @@ export function ResultsPage() {
                       ) : null}
 
                       <div className="grid gap-2 sm:grid-cols-2">
-                        {question.options.map((option, optionIndex) => {
+                        {question.options.map((option) => {
                           const selected = item.selectedAnswer === option.id;
                           const isCorrect = item.correctAnswers.includes(option.id);
                           const optionState = isCorrect
@@ -509,7 +509,7 @@ export function ResultsPage() {
                       title={`Question ${item.questionNumber}: ${status.label}`}
                       onClick={() => {
                         setFilter("all");
-                        window.setTimeout(() => scrollToQuestion(item.questionId), 0);
+                        window.requestAnimationFrame(() => scrollToQuestion(item.questionId));
                       }}
                     >
                       {item.questionNumber}
@@ -523,6 +523,7 @@ export function ResultsPage() {
                     ["correct", result.correct],
                     ["incorrect", result.incorrect],
                     ["unattempted", result.unattempted],
+                    ["ungraded", result.ungraded],
                   ] as const
                 ).map(([key, count]) => {
                   const item = STATUS[key];

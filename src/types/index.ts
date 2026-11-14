@@ -3,7 +3,7 @@ import type { ExtractedContext, ExtractedMedia } from "@/lib/extraction-schema";
 export type QuestionType = "mcq" | "multiple" | "numeric";
 export type AttemptMode = "mock" | "practice";
 export type PracticeTimingMode = "none" | "stopwatch" | "countdown";
-export type ResultFilter = "all" | "correct" | "incorrect" | "unattempted";
+export type ResultFilter = "all" | "correct" | "incorrect" | "unattempted" | "ungraded";
 
 export interface QuestionOption {
   id: string;
